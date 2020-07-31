@@ -1,0 +1,3 @@
+[submodule "vm_attest/components/CakeServer/cakeml_am"]
+	path = vm_attest/components/CakeServer/cakeml_am
+	url = ssh://git@github.com/ku-sldg/cakeml-am.git

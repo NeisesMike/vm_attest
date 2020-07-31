@@ -1,0 +1,85 @@
+/*
+ * Copyright 2019, Data61
+ * Commonwealth Scientific and Industrial Research Organisation (CSIRO)
+ * ABN 41 687 119 230.
+ *
+ * This software may be distributed and modified according to the terms of
+ * the BSD 2-Clause license. Note that NO WARRANTY is provided.
+ * See "LICENSE_BSD2.txt" for details.
+ *
+ * @TAG(DATA61_BSD)
+ */
+
+#include <configurations/vm.h>
+
+import <std_connector.camkes>;
+import <global-connectors.camkes>;
+import <seL4VMDTBPassthrough.idl4>;
+import <FileServerInterface.camkes>;
+import <FileServer/FileServer.camkes>;
+import <SerialServer/SerialServer.camkes>;
+import <TimeServer/TimeServer.camkes>;
+import <vm-connectors.camkes>;
+import <devices.camkes>;
+
+import "components/CakeServer/destination_t_impl.camkes";
+import "components/Router/router.camkes";
+
+#define FIRST_CROSS_VM_BADGE (1 << 3)
+
+struct vswitch_mapping {
+    string mac_addr;
+    int send_id;
+    int recv_id;
+};
+
+component VM {
+    VM_INIT_DEF()
+    attribute vswitch_mapping vswitch_layout[] = [];
+    attribute string vswitch_mac_address = "";
+    dataport Buf(4096) crossvm_dp_0;
+    dataport Buf(4096) crossvm_dp_1;
+    emits Ready ready;
+    consumes Done done;
+}
+
+assembly {
+    composition {
+        VM_GENERAL_COMPOSITION_DEF()
+        VM_COMPOSITION_DEF(0)
+        component Router router;
+        component CakeServer dest;
+
+        connection seL4Notification event_conn_0(from vm0.ready, to router.ready);
+        connection seL4GlobalAsynch event_conn_1(from router.done, to vm0.done);
+        connection seL4SharedDataWithCaps cross_vm_conn_0(from router.dest, to vm0.crossvm_dp_0);
+        connection seL4SharedDataWithCaps cross_vm_conn_1(from router.src, to vm0.crossvm_dp_1);
+        connection seL4VMDTBPassthrough vm_dtb(from vm0.dtb_self, to vm0.dtb);
+
+
+        connection seL4Notification conn2(from router.sb_dest_periodic_dispatch_notification, to dest.sb_periodic_dispatch_notification);
+        connection seL4SharedData conn3(from router.sb_write_port, to dest.sb_read_port);
+
+    }
+    configuration {
+        VM_GENERAL_CONFIGURATION_DEF()
+        VM_CONFIGURATION_DEF(0)
+
+        vm0.num_extra_frame_caps = 0;
+        vm0.extra_frame_map_address = 0;
+        vm0.cnode_size_bits = 23;
+        vm0.simple_untyped24_pool = 12;
+
+        vm0.crossvm_dp_0_id = 0;
+        vm0.crossvm_dp_0_size = 4096;
+        vm0.crossvm_dp_1_id = 0;
+        vm0.crossvm_dp_1_size = 4096;
+
+        vm0.vswitch_mac_address = "02:00:00:00:AA:01";
+        vm0.recv_id = 0;
+        vm0.recv_shmem_size = 32768;
+        vm0.send_id = 1;
+        vm0.send_shmem_size = 32768;
+    }
+}
+
