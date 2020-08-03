@@ -16,7 +16,7 @@ echo "Trying an initial build..." &&
 echo "====================================" &&
 
 
-if ../init-build.sh -DCAMKES_VM_APP=vm_attest -DPLATFORM=exynos5422 -DAARCH32=1; then
+if ../init-build.sh -DCAMKES_VM_APP=vm_attest -DPLATFORM=exynos5422 -DAARCH32=1; then #-DCROSS_COMPILER_PREFIX=arm-linux-gnueabi-; then
     true
 else
     echo "====================================" &&
@@ -26,7 +26,7 @@ else
     cd ../../vm_attest/components/CakeServer &&
     ./buildCakeDocker.sh &&
     cd - &&
-    ../init-build.sh -DCAMKES_VM_APP=vm_attest -DPLATFORM=exynos5422 -DAARCH32=1
+    ../init-build.sh -DCAMKES_VM_APP=vm_attest -DPLATFORM=exynos5422 -DAARCH32=1 # -DCROSS_COMPILER_PREFIX=arm-linux-gnueabi-
 fi &&
 echo "====================================" &&
 echo "Build succeeded." &&

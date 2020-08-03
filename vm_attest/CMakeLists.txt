@@ -334,6 +334,75 @@ AddFileToOverlayDir(
     overlay
 )
 
+
+CAmkESAddImportPath(${KernelARMPlatform})
+
+# Define our VM Component with out cross vm dataports glue code
+DeclareCAmkESComponent(VM SOURCES src/cross_vm_connections.c)
+
+# Define our demo component that shares a dataport with the VM
+add_subdirectory(components/Router)
+
+#===========================================
+# BEGIN DECLARATION OF CAKE COMPONENTS
+#===========================================
+
+find_program (arm-hf-gcc arm-linux-gnueabihf-gcc)
+set(CMAKE_C_COMPILER ${arm-hf-gcc})
+
+add_subdirectory(components/CakeServer/cakeml_am/system/crypto)
+
+DeclareCAmkESComponent(CakeServer
+    SOURCES
+        components/CakeServer/destination.c 
+        components/CakeServer/sb_destination_t_impl.c
+        sampling_ports/sp_int8_t.c
+        ${CMAKE_CURRENT_BINARY_DIR}/cakeServer.S
+    INCLUDES
+        components/destination_t_impl/includes
+        /usr/lib/gcc-cross/arm-linux-gnueabihf/8/include
+        sampling_ports
+        includes
+    LIBS
+        "crypto"
+)
+
+
+#===========================================
+# END DECLARATION OF CAKE COMPONENTS
+#===========================================
+
+find_program(CAKE NAMES cake32 cake PATHS "~/cake-x64-x32/" "/cake-x64-x32/" DOC "32-bit targeting CakeML compiler")
+if("${CAKE}" STREQUAL "CAKE-NOTFOUND")
+    message(FATAL_ERROR "Could not find a 32-bit targeting CakeML compiler. Please ensure cake32 is on the system path.")
+endif()
+ExternalProject_Add(
+    useram
+    SOURCE_DIR
+    ${CMAKE_CURRENT_SOURCE_DIR}/cakeml-am
+    BINARY_DIR
+    ${CMAKE_CURRENT_BINARY_DIR}/cakeml-am
+    INSTALL_COMMAND
+    ""
+    BUILD_ALWAYS
+    ON
+    EXCLUDE_FROM_ALL
+    CMAKE_ARGS
+        -DCMAKE_C_COMPILER=${odroid_cross_compiler}
+        -DCMAKE_C_FLAGS=${BASE_C_FLAGS}
+        -DAM_QUEUE_LIB=${CMAKE_CURRENT_SOURCE_DIR}/../am_queue
+        -DCAKE=${CAKE}
+)
+
+MyAddExternalProjFilesToOverlay(
+    useram
+    ${CMAKE_CURRENT_BINARY_DIR}/cakeml-am
+    overlay
+    "usr/bin"
+    FILES
+    groundstation
+)
+
 # Construct new rootfs
 AddOverlayDirToRootfs(
     overlay
@@ -376,146 +445,10 @@ AddCamkesCPPFlag(
 
 DefineCAmkESVMFileServer()
 
-CAmkESAddImportPath(${KernelARMPlatform})
-
-# Define our VM Component with out cross vm dataports glue code
-DeclareCAmkESComponent(VM SOURCES src/cross_vm_connections.c)
-
-# Define our demo component that shares a dataport with the VM
-add_subdirectory(components/Router)
-
-#===========================================
-# BEGIN DECLARATION OF CAKE COMPONENTS
-#===========================================
-
-add_subdirectory(components/CakeServer/cakeml_am/system/crypto)
-
-DeclareCAmkESComponent(CakeServer
-    SOURCES
-        components/CakeServer/destination.c 
-        components/CakeServer/sb_destination_t_impl.c
-        sampling_ports/sp_int8_t.c
-        ${CMAKE_CURRENT_BINARY_DIR}/cakeServer.S
-    INCLUDES
-        components/destination_t_impl/includes
-        sampling_ports
-        includes
-    LIBS
-        "crypto"
-    CMAKE_ARGS
-        -DCMAKE_C_COMPILER=${odroid_cross_compiler}
-)
-
-
-#===========================================
-# END DECLARATION OF CAKE COMPONENTS
-#===========================================
-
-find_program(CAKE NAMES cake32 cake PATHS "~/cake-x64-x32/" "/cake-x64-x32/" DOC "32-bit targeting CakeML compiler")
-if("${CAKE}" STREQUAL "CAKE-NOTFOUND")
-    message(FATAL_ERROR "Could not find a 32-bit targeting CakeML compiler. Please ensure cake32 is on the system path.")
-endif()
-ExternalProject_Add(
-    useram
-    SOURCE_DIR
-    ${CMAKE_CURRENT_SOURCE_DIR}/cakeml-am
-    BINARY_DIR
-    ${CMAKE_CURRENT_BINARY_DIR}/cakeml-am
-    INSTALL_COMMAND
-    ""
-    BUILD_ALWAYS
-    ON
-    EXCLUDE_FROM_ALL
-    CMAKE_ARGS
-        -DCMAKE_C_COMPILER=${odroid_cross_compiler}
-        -DCMAKE_C_FLAGS=${BASE_C_FLAGS}
-        -DAM_QUEUE_LIB=${CMAKE_CURRENT_SOURCE_DIR}/../am_queue
-        -DCAKE=${CAKE}
-)
-
-MyAddExternalProjFilesToOverlay(
-    useram
-    ${CMAKE_CURRENT_BINARY_DIR}/cakeml-am
-    overlay
-    "usr/bin"
-    FILES
-    groundstation
-)
-
 #=====================
 # mike end
 #=====================
 
-ExternalProject_Add(
-    UxASGS
-    GIT_REPOSITORY
-    https://github.com/loonwerks/case-ta6-experimental-platform-OpenUxAS.git
-    GIT_TAG
-    develop-case-ta6-ph2-example01
-    GIT_SHALLOW
-    true
-    INSTALL_COMMAND
-    ""
-    UPDATE_COMMAND
-    ""
-    CONFIGURE_COMMAND
-    cd <SOURCE_DIR> && ./prepare && cd <BINARY_DIR> && meson setup <BINARY_DIR> <SOURCE_DIR> --cross-file=<SOURCE_DIR>/camkes-vm-arm-linux-gnueabi-cross-file.txt --buildtype=release
-    BUILD_COMMAND
-    ninja -C <BINARY_DIR> all
-)
-
-ExternalProject_Get_property(UxASGS DOWNLOAD_DIR)
-message("Download dir of UxASGS = ${DOWNLOAD_DIR}")
-MyAddExternalProjFilesToOverlay(
-    UxASGS
-    ${DOWNLOAD_DIR}/UxASGS-build
-    overlay
-    "home/uxas/build"
-    FILES
-    uxas
-)
-MyAddExternalProjFilesToOverlay(
-    UxASGS
-    ${DOWNLOAD_DIR}/UxASGS/examples/CASE-TA6-Challenge-Problems/ph2_01_WaterwaySearch
-    overlay
-    "home/uxas/ex/p2/01_Waterway"
-    FILES
-    cfg_WaterwaySearch_GS.xml
-    runUxAS_WaterwaySearch_GS.sh
-)
-MyAddExternalProjFilesToOverlay(
-    UxASGS
-    ${DOWNLOAD_DIR}/UxASGS/examples/CASE-TA6-Challenge-Problems/ph2_01_WaterwaySearch/Messages
-    overlay
-    "home/uxas/ex/p2/01_Waterway/Messages"
-    FILES
-    OperatingRegion_336.xml
-)
-MyAddExternalProjFilesToOverlay(
-    UxASGS
-    ${DOWNLOAD_DIR}/UxASGS/examples/CASE-TA6-Challenge-Problems/ph2_01_WaterwaySearch/Messages/tasks
-    overlay
-    "home/uxas/ex/p2/01_Waterway/Messages/tasks"
-    FILES
-    1000_LineSearch_LINE_Waterway_Deschutes.xml
-    1001_AutomationRequest_LINE_Waterway_Deschutes.xml
-)
-
-# Overwrite inittab file for using the virtio console hvc0.
-AddFileToOverlayDir(
-    "inittab"
-    ${CMAKE_CURRENT_SOURCE_DIR}/overlay_files/init_scripts/inittab_hvc0
-    "etc"
-    overlay
-)
-
-# Add init.d file for starting UxAS as service.
-AddFileToOverlayDir(
-    "S98uxas"
-    ${CMAKE_CURRENT_SOURCE_DIR}/overlay_files/init_scripts/init.d/S98uxas
-    "etc/init.d"
-    overlay
-)
 
 # Declare root server
 DeclareCAmkESRootserver(
