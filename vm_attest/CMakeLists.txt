@@ -227,9 +227,9 @@ endif()
 ExternalProject_Add(
     useram
     SOURCE_DIR
-    ${CMAKE_CURRENT_SOURCE_DIR}/cakeml-am
+    ${CMAKE_CURRENT_SOURCE_DIR}/components/CakeServer/cakeml-am
     BINARY_DIR
-    ${CMAKE_CURRENT_BINARY_DIR}/cakeml-am
+    ${CMAKE_CURRENT_BINARY_DIR}/components/CakeServer/cakeml-am
     INSTALL_COMMAND
     ""
     BUILD_ALWAYS
@@ -244,7 +244,7 @@ ExternalProject_Add(
 
 MyAddExternalProjFilesToOverlay(
     useram
-    ${CMAKE_CURRENT_BINARY_DIR}/cakeml-am
+    ${CMAKE_CURRENT_BINARY_DIR}/components/CakeServer/cakeml-am
     overlay
     "usr/bin"
     FILES
