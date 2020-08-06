@@ -4,7 +4,7 @@
 
 * the camkes-arm-vm app called vm_cross_connector
 * the camkes-arm-vm app called vm_virtio_net (see virtio_net.md)
-* the cakeml attestation manager (see components/CakeServer/cakeml_am/README.md)
+* the cakeml attestation manager (see components/CakeServer/cakeml-am/README.md)
 
 #### This app implements a communication architecture between three CAmkES components:
 

@@ -197,7 +197,7 @@ add_subdirectory(components/Router)
 # begin platam stuff
 #============================================================================
 
-add_subdirectory(components/CakeServer/cakeml_am/system/crypto)
+add_subdirectory(components/CakeServer/cakeml-am/system/crypto)
 
 DeclareCAmkESComponent(CakeServer
     SOURCES
