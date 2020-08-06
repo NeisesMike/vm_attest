@@ -14,18 +14,12 @@ cmake_minimum_required(VERSION 3.8.2)
 
 project(vm_attest C)
 
-# needed to build the crypto lib correctly
+# needed to build the cakeml crypto lib correctly
 set(CAmkES "true")
 
 add_definitions(-DCAMKES)
 find_program(CAKEML_COMPILER NAMES "cake32")
-find_program( odroid_cross_compiler arm-linux-gnueabihf-gcc )
-
 find_package(camkes-vm-linux REQUIRED)
-#find_package(camkes-vm REQUIRED)
-#find_package(camkes-vm-images REQUIRED)
-#find_package(camkes-arm-vm REQUIRED)
-
 include(../../arm_vm_helpers.cmake)
 include(${CAMKES_VM_LINUX_HELPERS_PATH})
 include(${CAMKES_VM_LINUX_MODULE_HELPERS_PATH})
@@ -33,12 +27,12 @@ include(${CAMKES_VM_LINUX_SOURCE_HELPERS_PATH})
 include(ExternalProject)
 include(external-project-helpers)
 
-#camkes_arm_vm_import_project()
+#==================================================
+# Begin Kent functions
+#==================================================
 
 message("The value of CMAKE_CURRENT_SOURCE_DIR = ${CMAKE_CURRENT_SOURCE_DIR}")
 message("The value of CMAKE_CURRENT_BINARY_DIR = ${CMAKE_CURRENT_BINARY_DIR}")
-
-
 
 # Taken and modified from tools/seL4/cmake-tool/helpers/external-project-helpers.cmake
 # Function to add a given file to an overlay directory.
@@ -147,177 +141,13 @@ function(MyAddExternalProjFilesToOverlay external_target external_install_dir ov
     endforeach()
 endfunction(MyAddExternalProjFilesToOverlay)
 
+#==================================================
+# End Kent functions
+# Begin cross_vm stuff
+#==================================================
 
-
-
-# =============== new =====================
-# Create our CPP Flags based on ARM VM config variables
-set(rootfs_address "0x4d700000")
-set(dtb_file "${CAMKES_VM_IMAGES_DIR}/${KernelARMPlatform}/linux-dtb")
-# ============= end new ===================
-
-
-
-# Create our CPP Flags based on ARM VM config variables
-set(cpp_flags "-DKERNELARMPLATFORM_EXYNOS5422")
-set(linux_repo "https://github.com/hardkernel/linux.git")
-set(linux_tag "4.14.87-153")
-set(linux_arch "arm")
-set(linux_cross_compile "arm-linux-gnueabihf-")
-
-
-
-
-
-if(BUILD_CROSSVM)
-    set(rootfs_file "${CAMKES_VM_IMAGES_DIR}/${KernelARMPlatform}/rootfs.cpio.gz")
-    # Checkout and configure linux to build crossvm module
-    ExternalProject_Add(
-        checkout_linux
-        GIT_REPOSITORY
-        ${linux_repo}
-        GIT_TAG
-        ${linux_tag}
-        GIT_SHALLOW
-        1
-        GIT_PROGRESS
-        1
-        BUILD_COMMAND
-        ""
-        INSTALL_COMMAND
-        ""
-        CONFIGURE_COMMAND
-        ""
-        SOURCE_DIR
-        ${CMAKE_CURRENT_BINARY_DIR}/linux_out
-    )
-    # Linux config and symvers are to be copied to unpacked archive
-    set(linux_config "${CAMKES_VM_IMAGES_DIR}/${KernelARMPlatform}/linux_configs/config")
-    set(linux_symvers "${CAMKES_VM_IMAGES_DIR}/${KernelARMPlatform}/linux_configs/Module.symvers")
-    # Configure unpacked archive with config and symvers
-    ConfigureLinux(
-        ${CMAKE_CURRENT_BINARY_DIR}/linux_out
-        ${linux_config}
-        ${linux_symvers}
-        configure_vm_linux
-        ARCH
-        ${linux_arch}
-        CROSS_COMPILE
-        ${linux_cross_compile}
-        DEPENDS
-        checkout_linux
-    )
-
-    # Compile CrossVM Dataport Module
-    DefineLinuxModule(
-        ${CAMKES_VM_LINUX_DIR}/camkes-linux-artifacts/camkes-linux-modules/camkes-connector-modules/connection
-        output_module
-        output_module_target
-        KERNEL_DIR
-        ${CMAKE_CURRENT_BINARY_DIR}/linux_out
-        ARCH
-        ${linux_arch}
-        CROSS_COMPILE
-        ${linux_cross_compile}
-        DEPENDS
-        checkout_linux
-        configure_vm_linux
-    )
-    AddFileToOverlayDir(
-        "connection.ko"
-        ${output_module}
-        "lib/modules/4.14.87/kernel/drivers/vmm"
-        overlay
-        DEPENDS
-        output_module_target
-    )
-
-    # Complile CrossVM Dataport Apps
-    ExternalProject_Add(
-        dataport-apps
-        URL
-        file:///${CAMKES_VM_LINUX_DIR}/camkes-linux-artifacts/camkes-linux-apps/camkes-connector-apps/pkgs/dataport
-        BINARY_DIR
-        ${CMAKE_CURRENT_BINARY_DIR}/dataport_apps
-        INSTALL_COMMAND
-        ""
-        BUILD_ALWAYS
-        ON
-        EXCLUDE_FROM_ALL
-        CMAKE_ARGS
-        -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
-    )
-    AddExternalProjFilesToOverlay(
-        dataport-apps
-        ${CMAKE_CURRENT_BINARY_DIR}/dataport_apps
-        overlay
-        "usr/bin"
-        FILES
-        dataport_read
-        dataport_write
-    )
-
-    # Complile CrossVM Event Apps
-    ExternalProject_Add(
-        event-apps
-        URL
-        file:///${CAMKES_VM_LINUX_DIR}/camkes-linux-artifacts/camkes-linux-apps/camkes-connector-apps/pkgs/emits_event
-        BINARY_DIR
-        ${CMAKE_CURRENT_BINARY_DIR}/emits_event_apps
-        INSTALL_COMMAND
-        ""
-        BUILD_ALWAYS
-        ON
-        EXCLUDE_FROM_ALL
-        CMAKE_ARGS
-        -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
-    )
-    AddExternalProjFilesToOverlay(
-        event-apps
-        ${CMAKE_CURRENT_BINARY_DIR}/emits_event_apps
-        overlay
-        "usr/bin"
-        FILES
-        emits_event_emit
-    )
-
-    # Complile CrossVM Consume Event Apps
-    ExternalProject_Add(
-        consume-event-apps
-        URL
-        file:///${CAMKES_VM_LINUX_DIR}/camkes-linux-artifacts/camkes-linux-apps/camkes-connector-apps/pkgs/consumes_event
-        BINARY_DIR
-        ${CMAKE_CURRENT_BINARY_DIR}/consume_event_apps
-        INSTALL_COMMAND
-        ""
-        BUILD_ALWAYS
-        ON
-        EXCLUDE_FROM_ALL
-        CMAKE_ARGS
-        -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
-    )
-    AddExternalProjFilesToOverlay(
-        consume-event-apps
-        ${CMAKE_CURRENT_BINARY_DIR}/consume_event_apps
-        overlay
-        "usr/bin"
-        FILES
-        consumes_event_wait
-    )
-
-    # Add script to initialise dataport module
-    AddFileToOverlayDir(
-        "S90crossvm_module_init"
-        ${CMAKE_CURRENT_SOURCE_DIR}/overlay_files/init_scripts/cross_vm_module_init
-        "etc/init.d"
-        overlay
-    )
-else()
-    # User pre-configured rootfs file with crossvm modules and apps installed
-    set(rootfs_file "${CAMKES_VM_IMAGES_DIR}/${KernelARMPlatform}/rootfs_crossvm.cpio.gz")
-endif()
-
-#-----------------------------
+# User pre-configured rootfs file with crossvm modules and apps installed
+set(rootfs_file "${CAMKES_VM_IMAGES_DIR}/${KernelARMPlatform}/rootfs_crossvm.cpio.gz")
 
 # Add script to test dataport module
 AddFileToOverlayDir(
@@ -329,11 +159,31 @@ AddFileToOverlayDir(
 
 AddFileToOverlayDir(
     "interfaces"
-    ${CMAKE_CURRENT_SOURCE_DIR}/overlay_files/network_interfaces/interfaces
+    ${CMAKE_CURRENT_SOURCE_DIR}/overlay_files/network/interfaces
     "etc/network"
     overlay
 )
 
+#==================================================
+# End cross_vm stuff
+# Add VM and Router components
+#==================================================
+
+# Create our CPP Flags based on ARM VM config variables
+set(rootfs_address "0x4d700000")
+set(dtb_file "${CAMKES_VM_IMAGES_DIR}/${KernelARMPlatform}/linux-dtb")
+set(cpp_flags "-DKERNELARMPLATFORM_EXYNOS5422")
+
+AddCamkesCPPFlag(
+    cpp_flags
+    CONFIG_VARS
+    VmEmmc2NoDMA
+    VmVUSB
+    VmVchan
+    Tk1DeviceFwd
+    Tk1Insecure
+    VmVirtioNetVirtqueue
+)
 
 CAmkESAddImportPath(${KernelARMPlatform})
 
@@ -343,12 +193,9 @@ DeclareCAmkESComponent(VM SOURCES src/cross_vm_connections.c)
 # Define our demo component that shares a dataport with the VM
 add_subdirectory(components/Router)
 
-#===========================================
-# BEGIN DECLARATION OF CAKE COMPONENTS
-#===========================================
-
-find_program (arm-hf-gcc arm-linux-gnueabihf-gcc)
-set(CMAKE_C_COMPILER ${arm-hf-gcc})
+#============================================================================
+# begin platam stuff
+#============================================================================
 
 add_subdirectory(components/CakeServer/cakeml_am/system/crypto)
 
@@ -360,17 +207,18 @@ DeclareCAmkESComponent(CakeServer
         ${CMAKE_CURRENT_BINARY_DIR}/cakeServer.S
     INCLUDES
         components/destination_t_impl/includes
-        /usr/lib/gcc-cross/arm-linux-gnueabihf/8/include
         sampling_ports
         includes
     LIBS
         "crypto"
 )
 
+#============================================================================
+# end platam stuff
+# begin useram stuff
+#============================================================================
 
-#===========================================
-# END DECLARATION OF CAKE COMPONENTS
-#===========================================
+find_program( odroid_cross_compiler arm-linux-gnueabihf-gcc )
 
 find_program(CAKE NAMES cake32 cake PATHS "~/cake-x64-x32/" "/cake-x64-x32/" DOC "32-bit targeting CakeML compiler")
 if("${CAKE}" STREQUAL "CAKE-NOTFOUND")
@@ -403,6 +251,63 @@ MyAddExternalProjFilesToOverlay(
     groundstation
 )
 
+#========================================================================================================
+# end useram stuff
+# begin uxas stuff
+#========================================================================================================
+
+if(false)
+    ExternalProject_Add(
+        UxASGS
+        GIT_REPOSITORY
+        https://github.com/loonwerks/case-ta6-experimental-platform-OpenUxAS.git
+        GIT_TAG
+        develop-case-ta6-ph2-example01
+        GIT_SHALLOW
+        true
+        INSTALL_COMMAND
+        ""
+        UPDATE_COMMAND
+        ""
+        CONFIGURE_COMMAND
+        cd <SOURCE_DIR> && ./prepare && cd <BINARY_DIR> && meson setup <BINARY_DIR> <SOURCE_DIR> --cross-file=<SOURCE_DIR>/camkes-vm-arm-linux-gnueabi-cross-file.txt --buildtype=release
+        BUILD_COMMAND
+        ninja -C <BINARY_DIR> all
+    )
+
+    ExternalProject_Get_property(UxASGS DOWNLOAD_DIR)
+    message("Download dir of UxASGS = ${DOWNLOAD_DIR}")
+    MyAddExternalProjFilesToOverlay(
+        UxASGS
+        ${DOWNLOAD_DIR}/UxASGS-build
+        overlay
+        "home/uxas/build"
+        FILES
+        uxas
+    )
+
+    # Overwrite inittab file for using the virtio console hvc0.
+    AddFileToOverlayDir(
+        "inittab"
+        ${CMAKE_CURRENT_SOURCE_DIR}/overlay_files/init_scripts/inittab_hvc0
+        "etc"
+        overlay
+    )
+
+    # Add init.d file for starting UxAS as service.
+    AddFileToOverlayDir(
+        "S98uxas"
+        ${CMAKE_CURRENT_SOURCE_DIR}/overlay_files/init_scripts/init.d/S98uxas
+        "etc/init.d"
+        overlay
+    )
+endif()
+
+#========================================================================================================
+# end uxas stuff
+# begin fileserver and linux stuff
+#========================================================================================================
+
 # Construct new rootfs
 AddOverlayDirToRootfs(
     overlay
@@ -414,7 +319,6 @@ AddOverlayDirToRootfs(
     GZIP
 )
 
-# =============== new =====================
 # Updated dtb based on generated initrd
 UpdateDtbFromInitrd(
     ${dtb_file}
@@ -428,27 +332,12 @@ UpdateDtbFromInitrd(
 
 AddToFileServer("linux-dtb" "${output_dtb_location}" DEPENDS dtb_gen_target)
 AddToFileServer("linux" "${CAMKES_VM_IMAGES_DIR}/${KernelARMPlatform}/linux")
-# ============= end new ===================
 AddToFileServer("linux-initrd" ${output_overlayed_rootfs_location} DEPENDS rootfs_target)
-
-
-AddCamkesCPPFlag(
-    cpp_flags
-    CONFIG_VARS
-    VmEmmc2NoDMA
-    VmVUSB
-    VmVchan
-    Tk1DeviceFwd
-    Tk1Insecure
-    VmVirtioNetVirtqueue
-)
-
 DefineCAmkESVMFileServer()
 
-#=====================
-# mike end
-#=====================
-
+#========================================================================================================
+# end fileserver and linux stuff
+#========================================================================================================
 
 # Declare root server
 DeclareCAmkESRootserver(
