@@ -49,7 +49,7 @@ struct
 
   fun attestPlat inputNonce =
     let
-        val signedMsmt = Crypto.signMsg (ByteString.fromRawString ("abc"^(ByteString.toRawString inputNonce)))
+        val signedMsmt = Crypto.signMsg "000" (ByteString.fromRawString ("abc"^(ByteString.toRawString inputNonce)))
     in
         let
             val _ = API.logInfo(String.concat ["plat returns: ",(ByteString.toRawString signedMsmt)])
