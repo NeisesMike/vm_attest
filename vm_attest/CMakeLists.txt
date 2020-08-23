@@ -201,9 +201,10 @@ add_subdirectory(components/CakeServer/cakeml-am/system/crypto)
 
 DeclareCAmkESComponent(CakeServer
     SOURCES
-        components/CakeServer/destination.c 
-        components/CakeServer/sb_destination_t_impl.c
-        sampling_ports/sp_int8_t.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/components/CakeServer/cakeml-am/system/dataports/dataport_ffi.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/components/CakeServer/destination.c 
+        ${CMAKE_CURRENT_SOURCE_DIR}/components/CakeServer/sb_destination_t_impl.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/sampling_ports/sp_int8_t.c
         ${CMAKE_CURRENT_BINARY_DIR}/cakeServer.S
     INCLUDES
         components/destination_t_impl/includes
@@ -218,38 +219,40 @@ DeclareCAmkESComponent(CakeServer
 # begin useram stuff
 #============================================================================
 
-find_program( odroid_cross_compiler arm-linux-gnueabihf-gcc )
+if(true)
+    find_program( odroid_cross_compiler arm-linux-gnueabihf-gcc )
 
-find_program(CAKE NAMES cake32 cake PATHS "~/cake-x64-x32/" "/cake-x64-x32/" DOC "32-bit targeting CakeML compiler")
-if("${CAKE}" STREQUAL "CAKE-NOTFOUND")
-    message(FATAL_ERROR "Could not find a 32-bit targeting CakeML compiler. Please ensure cake32 is on the system path.")
+    find_program(CAKE NAMES cake32 cake PATHS "~/cake-x64-x32/" "/cake-x64-x32/" DOC "32-bit targeting CakeML compiler")
+    if("${CAKE}" STREQUAL "CAKE-NOTFOUND")
+        message(FATAL_ERROR "Could not find a 32-bit targeting CakeML compiler. Please ensure cake32 is on the system path.")
+    endif()
+    ExternalProject_Add(
+        useram
+        SOURCE_DIR
+        ${CMAKE_CURRENT_SOURCE_DIR}/components/CakeServer/cakeml-am
+        BINARY_DIR
+        ${CMAKE_CURRENT_BINARY_DIR}/components/CakeServer/cakeml-am
+        INSTALL_COMMAND
+        ""
+        BUILD_ALWAYS
+        ON
+        EXCLUDE_FROM_ALL
+        CMAKE_ARGS
+            -DCMAKE_C_COMPILER=${odroid_cross_compiler}
+            -DCMAKE_C_FLAGS=${BASE_C_FLAGS}
+            -DAM_QUEUE_LIB=${CMAKE_CURRENT_SOURCE_DIR}/../am_queue
+            -DCAKE=${CAKE}
+    )
+
+    MyAddExternalProjFilesToOverlay(
+        useram
+        ${CMAKE_CURRENT_BINARY_DIR}/components/CakeServer/cakeml-am
+        overlay
+        "usr/bin"
+        FILES
+        groundstation
+    )
 endif()
-ExternalProject_Add(
-    useram
-    SOURCE_DIR
-    ${CMAKE_CURRENT_SOURCE_DIR}/components/CakeServer/cakeml-am
-    BINARY_DIR
-    ${CMAKE_CURRENT_BINARY_DIR}/components/CakeServer/cakeml-am
-    INSTALL_COMMAND
-    ""
-    BUILD_ALWAYS
-    ON
-    EXCLUDE_FROM_ALL
-    CMAKE_ARGS
-        -DCMAKE_C_COMPILER=${odroid_cross_compiler}
-        -DCMAKE_C_FLAGS=${BASE_C_FLAGS}
-        -DAM_QUEUE_LIB=${CMAKE_CURRENT_SOURCE_DIR}/../am_queue
-        -DCAKE=${CAKE}
-)
-
-MyAddExternalProjFilesToOverlay(
-    useram
-    ${CMAKE_CURRENT_BINARY_DIR}/components/CakeServer/cakeml-am
-    overlay
-    "usr/bin"
-    FILES
-    groundstation
-)
 
 #========================================================================================================
 # end useram stuff
@@ -259,8 +262,7 @@ MyAddExternalProjFilesToOverlay(
 if(false)
     ExternalProject_Add(
         UxASGS
-        GIT_REPOSITORY
-        https://github.com/loonwerks/case-ta6-experimental-platform-OpenUxAS.git
+        GIT_REPOSITORY https://github.com/loonwerks/case-ta6-experimental-platform-OpenUxAS.git
         GIT_TAG
         develop-case-ta6-ph2-example01
         GIT_SHALLOW
@@ -287,20 +289,20 @@ if(false)
     )
 
     # Overwrite inittab file for using the virtio console hvc0.
-    AddFileToOverlayDir(
-        "inittab"
-        ${CMAKE_CURRENT_SOURCE_DIR}/overlay_files/init_scripts/inittab_hvc0
-        "etc"
-        overlay
-    )
+#    AddFileToOverlayDir(
+#        "inittab"
+#        ${CMAKE_CURRENT_SOURCE_DIR}/overlay_files/init_scripts/inittab_hvc0
+#        "etc"
+#        overlay
+#    )
 
     # Add init.d file for starting UxAS as service.
-    AddFileToOverlayDir(
-        "S98uxas"
-        ${CMAKE_CURRENT_SOURCE_DIR}/overlay_files/init_scripts/init.d/S98uxas
-        "etc/init.d"
-        overlay
-    )
+#    AddFileToOverlayDir(
+#        "S98uxas"
+#        ${CMAKE_CURRENT_SOURCE_DIR}/overlay_files/init_scripts/init.d/S98uxas
+#        "etc/init.d"
+#        overlay
+#    )
 endif()
 
 #========================================================================================================
