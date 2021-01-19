@@ -1,0 +1,11 @@
+import <std_connector.camkes>;
+
+component CakeServer {
+  //include <sb_proc_types.h>;
+  //include <sp_int8_t.h>;
+  control;
+  consumes Notification cake_periodic_dispatch_notification;
+  //dataport sp_int8_t_t sb_read_port;
+  dataport Buf(4096) cake_read_port;
+  has semaphore cake_dispatch_sem;
+}

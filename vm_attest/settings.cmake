@@ -1,5 +1,5 @@
 #
-# Copyright 2019, Data61
+# Copyright 2018, Data61
 # Commonwealth Scientific and Industrial Research Organisation (CSIRO)
 # ABN 41 687 119 230.
 #
@@ -10,7 +10,7 @@
 # @TAG(DATA61_BSD)
 #
 
-set(supported "exynos5422")
+set(supported "exynos5422;qemu-arm-virt")
 if(NOT "${PLATFORM}" IN_LIST supported)
     message(FATAL_ERROR "PLATFORM: ${PLATFORM} not supported.
          Supported: ${supported}")
@@ -18,9 +18,8 @@ endif()
 set(VmPCISupport ON CACHE BOOL "" FORCE)
 set(LibUSB OFF CACHE BOOL "" FORCE)
 set(VmInitRdFile ON CACHE BOOL "" FORCE)
-
-# holdovers from older projects
-# do I need virtqueue stuff anymore?
-set(VmVirtioNetVirtqueue ON CACHE BOOL "" FORCE)
-set(VmDtbFile ON CACHE BOOL "provide dtb" FORCE)
-set(VmVirtioNet ON CACHE BOOL "" FORCE)
+if(${PLATFORM} STREQUAL "qemu-arm-virt")
+    # force cpu
+    set(QEMU_MEMORY "2048")
+    set(KernelArmCPU cortex-a53 CACHE STRING "" FORCE)
+endif()

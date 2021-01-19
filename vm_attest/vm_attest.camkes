@@ -1,5 +1,5 @@
 /*
- * Copyright 2019, Data61
+ * Copyright 2020, Data61
  * Commonwealth Scientific and Industrial Research Organisation (CSIRO)
  * ABN 41 687 119 230.
  *
@@ -14,31 +14,27 @@
 
 import <std_connector.camkes>;
 import <global-connectors.camkes>;
+import <vm-connectors.camkes>;
+import <devices.camkes>;
 import <seL4VMDTBPassthrough.idl4>;
 import <FileServerInterface.camkes>;
 import <FileServer/FileServer.camkes>;
 import <SerialServer/SerialServer.camkes>;
 import <TimeServer/TimeServer.camkes>;
-import <vm-connectors.camkes>;
-import <devices.camkes>;
 
-import "components/CakeServer/destination_t_impl.camkes";
-import "components/Router/router.camkes";
-
-#define FIRST_CROSS_VM_BADGE (1 << 3)
-
-struct vswitch_mapping {
-    string mac_addr;
-    int send_id;
-    int recv_id;
-};
+import "components/IntrospectManager/introMan.camkes";
+import "components/CakeServer/cake_server.camkes";
 
 component VM {
     VM_INIT_DEF()
-    attribute vswitch_mapping vswitch_layout[] = [];
-    attribute string vswitch_mac_address = "";
-    dataport Buf(4096) crossvm_dp_0;
-    dataport Buf(4096) crossvm_dp_1;
+    
+    //guest memory region
+    dataport Buf memdev;
+
+    //data to pass through to memdev to look at
+    dataport Buf introspect_data;
+
+    //communication signals
     emits Ready ready;
     consumes Done done;
 }
@@ -47,19 +43,25 @@ assembly {
     composition {
         VM_GENERAL_COMPOSITION_DEF()
         VM_COMPOSITION_DEF(0)
-        component Router router;
-        component CakeServer dest;
+        component IntrospectManager md;
+        component CakeServer cake_server;
 
-        connection seL4Notification event_conn_0(from vm0.ready, to router.ready);
-        connection seL4GlobalAsynch event_conn_1(from router.done, to vm0.done);
-        connection seL4SharedDataWithCaps cross_vm_conn_0(from router.dest, to vm0.crossvm_dp_0);
-        connection seL4SharedDataWithCaps cross_vm_conn_1(from router.src, to vm0.crossvm_dp_1);
+        connection seL4Notification event_conn_0(from vm0.ready,
+                                             to md.ready);
+        connection seL4GlobalAsynch event_conn_1(from md.done,
+                                             to vm0.done);
+
+        connection seL4SharedDataWithCaps conn_introspect_data(from md.introspect_data,
+                                                               to vm0.introspect_data);
+
+        connection seL4SharedDataWithCaps vm_memdev(from md.memdev, to vm0.memdev);
+
         connection seL4VMDTBPassthrough vm_dtb(from vm0.dtb_self, to vm0.dtb);
 
 
-        connection seL4Notification conn2(from router.sb_dest_periodic_dispatch_notification, to dest.sb_periodic_dispatch_notification);
-        connection seL4SharedData conn3(from router.sb_write_port, to dest.sb_read_port);
+        connection seL4Notification event_conn_2(from md.cake_periodic_dispatch_notification, to cake_server.cake_periodic_dispatch_notification);
 
+        connection seL4SharedData conn3(from md.cake_write_port, to cake_server.cake_read_port);
     }
     configuration {
         VM_GENERAL_CONFIGURATION_DEF()
@@ -70,16 +72,10 @@ assembly {
         vm0.cnode_size_bits = 23;
         vm0.simple_untyped24_pool = 12;
 
-        vm0.crossvm_dp_0_id = 0;
-        vm0.crossvm_dp_0_size = 4096;
-        vm0.crossvm_dp_1_id = 0;
-        vm0.crossvm_dp_1_size = 4096;
+        vm0.introspect_data_id = 0;
+        vm0.introspect_data_size = 4096;
 
-        vm0.vswitch_mac_address = "02:00:00:00:AA:01";
-        vm0.recv_id = 0;
-        vm0.recv_shmem_size = 32768;
-        vm0.send_id = 1;
-        vm0.send_shmem_size = 32768;
+        md.memdev_hardware_cached = false;
+        vm0.memdev_hardware_cached = false;
     }
 }
-

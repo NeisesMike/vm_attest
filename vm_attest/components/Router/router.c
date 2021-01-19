@@ -16,6 +16,7 @@
 #include "sb_source_t_impl.h"
 
 
+/*
 // Read from vm
 int8_t* my_dataport_read()
 {
@@ -54,10 +55,12 @@ int8_t* cake_recv()
     MUTEXOP(sb_dispatch_sem_post())
     return( ret );
 }
+*/
 
 int run(void)
 {
-    my_dataport_write( "This is a test from a camkes component.\n" );
+    //my_dataport_write( "This is a test from a camkes component.\n" );
+    printf("ROUTER PRINT!");
 
     /*
     ** Wait for an event from the vm
@@ -67,6 +70,7 @@ int run(void)
     ** Get response from cakeml
     ** Send the cakeml response to the vm
     */
+    /*
     while (1) {
         ready_wait();
         int8_t* package = my_dataport_read();
@@ -78,6 +82,7 @@ int run(void)
         printf("Got back from Cake: %s\n", (char*)cakePackage);
         my_dataport_write( (char*)cakePackage );
     }
+    */
     
     return 0;
 }

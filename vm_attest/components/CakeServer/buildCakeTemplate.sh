@@ -16,7 +16,7 @@ cat cakeml-am/copland/json/CoplandToJson.sml >> cake_server.cml &&
 cat cakeml-am/copland/json/JsonToCopland.sml >> cake_server.cml && 
 
 # crypto src
-cat cakeml-am/system/crypto/CryptoFFI.sml >> cake_server.cml && 
+#cat cakeml-am/system/crypto/CryptoFFI.sml >> cake_server.cml && 
 
 # socket src
 cat cakeml-am/system/sockets/SocketFFI.sml >> cake_server.cml && 
@@ -33,6 +33,6 @@ cat cakeml-am/am/ServerAm.sml >> cake_server.cml &&
 cat destination.cml >> cake_server.cml && 
 
 echo "compile the dest cakeml" &&
-../../../cake32 --stack_size=1 --heap_size=1 < ./cake_server.cml > cakeServer.S &&
-sed -i "s/cdecl(main)/cdecl(run)/g" cakeServer.S
+../../../cake64 --target=arm8 --stack_size=1 --heap_size=1 < ./cake_server.cml > cakeServer.S &&
+sed -i "s/cdecl(main)/cdecl(run)/g" cakeServer.S &&
 

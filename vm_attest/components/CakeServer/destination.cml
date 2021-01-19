@@ -47,12 +47,13 @@ struct
 
   fun initialise() = (print "initializing cake server\n");
 
-  fun attestPlat inputNonce =
+  fun attestPlat msg inputNonce =
     let
-        val signedMsmt = Crypto.signMsg "000" (ByteString.fromRawString ("abc"^(ByteString.toRawString inputNonce)))
+        (* signMsg privateKey msg *)
+        val signedMsmt = Crypto.signMsg "000" (ByteString.fromRawString ((ByteString.toRawString msg)^(ByteString.toRawString inputNonce)))
     in
         let
-            val _ = API.logInfo(String.concat ["plat returns: ",(ByteString.toRawString signedMsmt)])
+            val _ = 0 (* API.logInfo(String.concat ["\n\nplat returns: ",(ByteString.toRawString signedMsmt)]) *)
         in
             #(sb_read_port_write) "" signedMsmt;
             ()
@@ -61,12 +62,13 @@ struct
 
   fun timeTriggered() =
     let
-        val value = API.sb_read_port_read() (* TODO: port read status flag *)
+        val thisMsg = API.sb_read_port_read() (* TODO: port read status flag *)
     in
         let
-            val _ = API.logInfo(String.concat ["plat got: ",(Word8Array.substring value 0 4096)])
+            val _ = 0 (* API.logInfo(String.concat ["\n\nplat got:\n",(Word8Array.substring value 0 4096)]) *)
+            (* val thisNonce = genNonce () *)
         in
-            attestPlat value;
+            attestPlat thisMsg thisMsg; (*thisNonce;*)
             ()
         end
     end;

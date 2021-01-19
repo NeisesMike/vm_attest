@@ -19,32 +19,34 @@ static int64_t sb_time_periodic_dispatcher;
 bool periodic_dispatcher_write_int64_t(const int64_t * arg) {
     sb_occurred_periodic_dispatcher = true;
     sb_time_periodic_dispatcher = *arg;
-    MUTEXOP(sb_dispatch_sem_post());
+    MUTEXOP(cake_dispatch_sem_post());
     return true;
 }
 
-void sb_periodic_dispatch_notification_callback(void *_ UNUSED) {
+void cake_periodic_dispatch_notification_callback(void *_ UNUSED) {
     // we want time in microseconds, not nanoseconds, so we divide by 1000.
     int64_t sb_time_periodic_dispatcher = 0; // sb_timer_time() / 1000LL -- timer connection disabled;
     (void)periodic_dispatcher_write_int64_t(&sb_time_periodic_dispatcher);
-    CALLBACKOP(sb_periodic_dispatch_notification_reg_callback(sb_periodic_dispatch_notification_callback, NULL));
+    CALLBACKOP(cake_periodic_dispatch_notification_reg_callback(cake_periodic_dispatch_notification_callback, NULL));
 }
 
 
-seqNum_t sb_read_port_seqNum;
+//seqNum_t sb_read_port_seqNum;
 
 bool sb_read_port_read(int8_t * value) {
     char str[4096];
-    sprintf(str, "%s\n", sb_read_port);
+    sprintf(str, "%s\n", cake_read_port);
     value = (int8_t*)str;
     return true;
 }
 
+/*
 void sb_entrypoint_destination_t_impl_periodic_dispatcher(const int64_t * in_arg) {
     test_data_port_periodic_destination_component_time_triggered((int64_t *) in_arg);
 }
+*/
 
-/************************************************************************
+/***********************************************************************
  *  sb_entrypoint_destination_t_impl_initializer:
  *
  * This is the function invoked by an active thread dispatcher to
@@ -52,10 +54,11 @@ void sb_entrypoint_destination_t_impl_periodic_dispatcher(const int64_t * in_arg
  * context for the user-defined entrypoint, then calls it.
  *
 ************************************************************************/
+/*
 void sb_entrypoint_destination_t_impl_initializer(const int64_t * in_arg) {
     test_data_port_periodic_destination_component_init((int64_t *) in_arg);
 }
-
+*/
 
 
 /************************************************************************
@@ -96,13 +99,13 @@ void ffilogerror (unsigned char *c, long clen, unsigned char *a, long alen) {
 }
 
 void ffiinitialise (unsigned char *c, long clen, unsigned char *a, long alen) {
-    CALLBACKOP(sb_periodic_dispatch_notification_reg_callback(sb_periodic_dispatch_notification_callback, NULL));
-    MUTEXOP(sb_dispatch_sem_wait());
+    CALLBACKOP(cake_periodic_dispatch_notification_reg_callback(cake_periodic_dispatch_notification_callback, NULL));
+    MUTEXOP(cake_dispatch_sem_wait());
 }
 
 void ffiwait (unsigned char *c, long clen, unsigned char *a, long alen) {
     assert(alen > 0);
-    MUTEXOP(sb_dispatch_sem_wait())
+    MUTEXOP(cake_dispatch_sem_wait())
 
         if(sb_occurred_periodic_dispatcher){
             sb_occurred_periodic_dispatcher = false;
@@ -117,14 +120,14 @@ void ffiwait (unsigned char *c, long clen, unsigned char *a, long alen) {
 /* HAMR-to-CakeML glue functions (receive_input + per-port functions) */
 
 void ffisb_read_port_write (unsigned char *c, long clen, unsigned char *a, long alen) {
-    memset( sb_read_port, '\0', 4096 );
-    strcpy( sb_read_port, a );
+    memset( cake_read_port, '\0', 4096 );
+    strcpy( cake_read_port, a );
     return;
 }
 
 void ffisb_read_port_read (unsigned char *c, long clen, unsigned char *a, long alen) {
     char str[4096];
-    sprintf(str, "%s\n", sb_read_port);
+    sprintf(str, "%s\n", cake_read_port);
     
     for( int i=0; i<4096; i++ )
     {

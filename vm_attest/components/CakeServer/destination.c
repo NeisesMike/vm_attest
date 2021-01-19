@@ -10,7 +10,7 @@ void test_data_port_periodic_destination_component_init(const int64_t *arg) {
 void test_data_port_periodic_destination_component_time_triggered(const int64_t *arg) {
   int8_t value;
 
-  if(sb_read_port_read(&value)){
+  if(cake_read_port_read(&value)){
     printf("[%s] value {%d}\n", get_instance_name(), value);
   }
 }

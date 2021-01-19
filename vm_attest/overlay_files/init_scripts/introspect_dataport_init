@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright 2019, Data61
+# Copyright 2020, Data61
 # Commonwealth Scientific and Industrial Research Organisation (CSIRO)
 # ABN 41 687 119 230.
 #
@@ -11,13 +11,4 @@
 # @TAG(DATA61_BSD)
 #
 
-set -e
-
-dataport_read /dev/uio0 4096
-echo -ne "This is a test user string\n\0" | dataport_write /dev/uio0 4096
-dataport_read /dev/uio0 4096
-consumes_event_wait /dev/uio0 &
-sleep 1
-emits_event_emit /dev/uio0
-wait
-echo "Finished crossvm test script"
+insmod /lib/modules/4.14.87/kernel/drivers/vmm/connection.ko
