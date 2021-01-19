@@ -8,12 +8,12 @@ cd ${dir} &&
 echo "==================================" &&
 echo "Grab the latest repo..." &&
 echo "==================================" &&
-repo init -u https://github.com/sel4proj/camkes-arm-vm-manifest &&
+repo init -u https://github.com/sel4/camkes-arm-vm-manifest &&
 repo sync &&
 echo "==================================" &&
 echo "Image generated!" &&
 echo "Copy vm_attest into the project..." &&
-cp -r ../vm_attest projects/vm/apps &&
+cp -r ../vm_attest projects/vm-examples/apps/Arm/ &&
 mkdir build &&
 cd build &&   
 echo "vm_attest copied." &&
@@ -26,7 +26,7 @@ cp ./vm_attest/components/CakeServer/buildCakeTemplate.sh vm_attest/components/C
 
 echo "
 echo 'move the cake assembly into position' &&
-cp cakeServer.S ../../../${dir}/build/apps/vm_attest/cakeServer.S &&
+cp cakeServer.S ../../../${dir}/build/apps/Arm/vm_attest/components/CakeServer/cakeServer.S &&
 
 echo 'done building cake files and moving libs!'
 " >> vm_attest/components/CakeServer/buildCakeDocker.sh &&
