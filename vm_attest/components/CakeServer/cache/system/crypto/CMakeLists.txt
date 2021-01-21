@@ -1,6 +1,6 @@
 include(ExternalProject)
 
-set(sys "linux")
+set(sys "CAmkES")
 
 # Fetch hacl-star v0.2.1
 # ExternalProject_Add(hacl-star
