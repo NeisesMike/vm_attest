@@ -21,7 +21,7 @@ DeclareCAmkESComponent(CakeServer
         sampling_ports
         includes
     LIBS
-        "crypto"
+        "crypto;camkescakeml"
 )
 
 #============================================================================
