@@ -62,6 +62,10 @@ assembly {
         connection seL4Notification event_conn_2(from md.cake_periodic_dispatch_notification, to cake_server.cake_periodic_dispatch_notification);
 
         connection seL4SharedData conn3(from md.cake_write_port, to cake_server.cake_read_port);
+        connection seL4Notification event_conn_5(from cake_server.ready,
+                                             to md.cake_ready);
+        connection seL4GlobalAsynch event_conn_6(from md.cake_done,
+                                             to cake_server.done);
     }
     configuration {
         VM_GENERAL_CONFIGURATION_DEF()

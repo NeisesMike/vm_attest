@@ -122,6 +122,7 @@ void ffiwait (unsigned char *c, long clen, unsigned char *a, long alen) {
 void ffisb_read_port_write (unsigned char *c, long clen, unsigned char *a, long alen) {
     memset( cake_read_port, '\0', 4096 );
     strcpy( cake_read_port, a );
+    ready_emit();
     return;
 }
 

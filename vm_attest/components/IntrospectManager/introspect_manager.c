@@ -44,10 +44,12 @@ void cake_send()
 {
     int8_t* packagePtr = malloc(sizeof(int8_t)*N);
     //int8_t* packagePtr = (int8_t*)fib_buf;
+    printf("sending to cake: ");
     for (int i = 0; i < N; i++) {
-        printf("%d\n", ((int8_t*)fib_buf)[i*4]);
+        printf("%d ", ((int8_t*)fib_buf)[i*4]);
         packagePtr[i] = ((int8_t*)fib_buf)[i*4];
     }
+    printf("\n");
     
     MUTEXOP(cake_dispatch_sem_wait())
     memset(cake_write_port, '\0', 4096);
@@ -132,13 +134,19 @@ int run(void)
 
         printf("\n");
 
+        done_emit_underlying();
+        done_emit();
+
         //send data from inside linux over to cake
         cake_send();
-        done_emit_underlying();
-        int8_t* cakePackage = cake_recv();
-        printf("Got back from Cake: %s\n", (char*)cakePackage);
 
-        done_emit();
+        //wait for cake to process
+        cake_ready_wait();
+        int8_t* cakePackage = cake_recv();
+        printf("Got back from Cake:\n%s", (char*)cakePackage);
+        cake_done_emit_underlying();
+        cake_done_emit();
+
     }
 
     return 0;

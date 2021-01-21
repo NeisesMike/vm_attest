@@ -9,12 +9,16 @@ component IntrospectManager {
     // data to introspect
     dataport Buf introspect_data;
 
-    // signals
+    // vm signals
     consumes Ready ready;
     emits Done done;
 
     //dataport Buf(4096) dest;
     //dataport Buf(4096) src;
+
+    // cake signals
+    consumes Ready cake_ready;
+    emits Done cake_done;
 
     dataport Buf(4096) cake_write_port;
     has semaphore cake_dispatch_sem;

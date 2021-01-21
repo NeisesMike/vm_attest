@@ -49,11 +49,11 @@ struct
 
   fun attestPlat msg inputNonce =
     let
-        (* signMsg privateKey msg *)
-        val signedMsmt = Crypto.signMsg "000" (ByteString.fromRawString ((ByteString.toRawString msg)^(ByteString.toRawString inputNonce)))
+        (* signMsg length32privateKey msg *)
+        val signedMsmt = Crypto.signMsg "12345678901234567890123456789012" (ByteString.fromRawString ((ByteString.toRawString msg)^(ByteString.toRawString inputNonce)))
     in
         let
-            val _ = 0 (* API.logInfo(String.concat ["\n\nplat returns: ",(ByteString.toRawString signedMsmt)]) *)
+            val _ = API.logInfo("Nonce is: " ^ (ByteString.toRawString inputNonce) ^ "\n")
         in
             #(sb_read_port_write) "" signedMsmt;
             ()
@@ -66,9 +66,9 @@ struct
     in
         let
             val _ = 0 (* API.logInfo(String.concat ["\n\nplat got:\n",(Word8Array.substring value 0 4096)]) *)
-            (* val thisNonce = genNonce () *)
+            val thisNonce = genNonce ()
         in
-            attestPlat thisMsg thisMsg; (*thisNonce;*)
+            attestPlat thisMsg thisNonce;
             ()
         end
     end;

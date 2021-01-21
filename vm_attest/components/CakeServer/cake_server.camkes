@@ -8,4 +8,8 @@ component CakeServer {
   //dataport sp_int8_t_t sb_read_port;
   dataport Buf(4096) cake_read_port;
   has semaphore cake_dispatch_sem;
+
+  //signals
+  emits Ready ready;
+  consumes Done done;
 }
