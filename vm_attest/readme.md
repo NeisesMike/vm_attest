@@ -13,17 +13,12 @@
 * The "IntrospectManager" component, which acts as an interface to communication with the linux OS instance
 * The "CakeServer" component, which implements the cakeml attestation manager
 
+See images/arch\ image.pdf for a visual.
+
 #### Instructions to build the app are included in the parent directory's readme.md file.
 
-## To do:
+## Future Work
 
-* Implement an example attestation.
-* Write more convenient interfaces for shell interaction within the hypervisor.
+* Implement a measurement interface, allowing the general introspection of linux kernel memory.
+* Write a paper arguing we've achieved the assumptions set out in the Confining paper by Paul.
 
-### Notes:
-
-It appears as though there can be at most 1 component which communicates with the linux vm. That is, a ping to any address on the subnet for which eth0 is configured will be delivered irrespective of the destination address. It is not clear to me whether another ethX connection can be established with another component.
-
-It appears as though the ID for a virtqueue can be no greater than 100.
-
-When communicating from within the hypervisor, it is best to null terminate \0 strings when sending them to stdout.
