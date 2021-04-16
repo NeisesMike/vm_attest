@@ -40,6 +40,7 @@ void my_dataport_write( char* string )
 */
 
 // Write to cakeml
+/*
 void cake_send()
 {
     int8_t* packagePtr = malloc(sizeof(int8_t)*N);
@@ -79,6 +80,7 @@ int8_t* cake_recv()
     MUTEXOP(cake_dispatch_sem_post());
     return( ret );
 }
+*/
 
 /*
 int run(void)
@@ -125,6 +127,7 @@ int run(void)
 
         printf("offset in component 0x%x\n", offset);
 
+        // Why is this memdev + offset?
         memcpy(fib_buf, ((char *)memdev + offset), sizeof(uint32_t) * N);
 
         //print data from inside linux process
@@ -137,6 +140,7 @@ int run(void)
         done_emit_underlying();
         done_emit();
 
+/*
         //send data from inside linux over to cake
         cake_send();
 
@@ -146,6 +150,7 @@ int run(void)
         printf("Got back from Cake:\n%s", (char*)cakePackage);
         cake_done_emit_underlying();
         cake_done_emit();
+*/
 
     }
 
