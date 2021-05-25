@@ -29,7 +29,7 @@ component VM {
     VM_INIT_DEF()
     
     //guest memory region
-    dataport Buf memdev;
+    dataport Buf(2048) memdev;
 
     //data to pass through to memdev to look at
     dataport Buf introspect_data;

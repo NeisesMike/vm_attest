@@ -5,7 +5,7 @@ component IntrospectManager {
     control;
 
     // guest memory connection
-    dataport Buf memdev;
+    dataport Buf(2048) memdev;
     // data to introspect
     dataport Buf introspect_data;
 
