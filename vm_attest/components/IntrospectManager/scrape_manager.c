@@ -3,123 +3,70 @@
 #include <camkes.h>
 #include <stdio.h>
 
-typedef struct {
-    uint8_t startIndex;
-    uint8_t ident[16];
-    uint16_t type;
-    uint16_t machine;
-    uint32_t version;
-    uint64_t entry;
-    uint64_t phoff;
-    uint64_t shoff;
-    uint32_t flags;
-    uint16_t ehsize;
-    uint16_t phentsize;
-    uint16_t phnum;
-    uint16_t shentsize;
-    uint16_t shnum;
-    uint16_t shstrndx;
-} ELF64Header;
+#include "pretty_printer.c"
 
-typedef struct {
-    uint8_t numBytes;
-    uint8_t data[64];
-} HeaderEntry;
-
-typedef struct {
-    uint8_t numEntries;
-    HeaderEntry* list[100];
-} ProgramHeaderTable;
-
-typedef struct {
-    uint8_t numEntries;
-    HeaderEntry* list[100];
-} SectionHeaderTable;
-
-
-/*
-bool matchEOFAdjacentString(int startIndex)
+uint32_t readHalf(int start)
 {
-    uint8_t magicByteArray[10];
-    char magicString[10] = "debug_line";
-    for(int i=0; i<10; i++)
-    {
-        magicByteArray[i] = (uint8_t)magicString[i];
-    }
-    for(int i=0; i<10; i++)
-    {
-        if(linuxMem[startIndex+i] != magicByteArray[i])
-        {
-            return false;
-        }
-    }
-    return true;
+    uint32_t result = (uint32_t)Linux_Mem[start+1] << 8
+        | Linux_Mem[start];
+    return result;
 }
 
-int lookForwardForEOF(int startIndex)
+uint32_t readWord(int start)
 {
-    for(int i=startIndex; i<1024*1000*100; i++)
-    {
-        if(linuxMem[i] == (uint8_t)'d')
-        {
-            if(matchEOFAdjacentString(i))
-            {
-                printf("Found Approximate End of ELF at %d\n", i);
-                //printf("Size of ELF portion is %d\n", i-startIndex);
-                return i;
-            }
-        }
-    }
-    return -1;
+    uint32_t result = (uint32_t)Linux_Mem[start+3] << 24
+        | Linux_Mem[start+2] << 16
+        | Linux_Mem[start+1] << 8
+        | Linux_Mem[start];
+    return result;
 }
 
-void checkForELF(int startIndex)
+uint64_t readAddr(int start)
 {
-    uint8_t magicByteArray[53];
-    char magicString[53] = "/build-q/apps/aadl-eventdata-direct-new/vm/connection";
-    for(int i=0; i<53; i++)
-    {
-        magicByteArray[i] = (uint8_t)magicString[i];
-    }
-    for(int i=0; i<53; i++)
-    {
-        if(linuxMem[startIndex+i] != magicByteArray[i])
-        {
-            return;
-        }
-    }
-    printf("\n\nFound the magic string at %d\n", startIndex);
-    int sof = lookBackForELFMagicNumber(startIndex);
-    int eof = lookForwardForEOF(sof);
-
-    if(sof < startIndex && startIndex < eof)
-    {
-        printf("ELF start: %d\nELF end: %d\nELF size: %d\n", sof, eof, eof-sof);
-    }
-    else
-    {
-        printf("That magic string didn't fall within the ELF boundaries...\n");
-    }
+    uint64_t result = (uint64_t)Linux_Mem[start+8] << 56
+        | Linux_Mem[start+7] << 48
+        | Linux_Mem[start+6] << 40
+        | Linux_Mem[start+5] << 32
+        | Linux_Mem[start+4] << 24
+        | Linux_Mem[start+3] << 16
+        | Linux_Mem[start+1] << 8
+        | Linux_Mem[start];
+    return result;
 }
 
-int lookBackForELFMagicNumber(int startIndex)
+SectionHeader64* getSectionHeader(int startIndex)
 {
-    uint8_t firstByte = (uint8_t)0x7f;
-    for(int i=0; i<startIndex; i++)
-    {
-        if(linuxMem[startIndex-i] == firstByte)
-        {
-            if(matchELFHeader(startIndex-i))
-            {
-                printf("Found start of ELF at %d\n", startIndex-i);
-                //printf("Size of ELF portion is %d\n", i);
-                return startIndex-i;
-            }
-        }
-    }
-    return -1;
+    SectionHeader64* thisSectionHeader = malloc(sizeof(SectionHeader64));
+
+    thisSectionHeader->name = readWord(startIndex+0);
+    thisSectionHeader->type = readWord(startIndex+4);
+    thisSectionHeader->flags = readAddr(startIndex+8);
+    thisSectionHeader->addr = readAddr(startIndex+16);
+    thisSectionHeader->offset = readAddr(startIndex+24);
+    thisSectionHeader->size = readAddr(startIndex+32);
+    thisSectionHeader->link = readWord(startIndex+40);
+    thisSectionHeader->info = readWord(startIndex+44);
+    thisSectionHeader->addralign = readAddr(startIndex+48);
+    thisSectionHeader->entsize = readAddr(startIndex+56);
+
+    return thisSectionHeader;
 }
-*/
+
+ProgramHeader64* getProgramHeader(uint8_t* linuxMem, int startIndex)
+{
+    ProgramHeader64* thisProgramHeader = malloc(sizeof(ProgramHeader64));
+
+    thisProgramHeader->type = readWord(startIndex+0);
+    thisProgramHeader->flags = readWord(startIndex+4);
+    thisProgramHeader->offset = readAddr(startIndex+8);
+    thisProgramHeader->vaddr = readAddr(startIndex+16);
+    thisProgramHeader->paddr = readAddr(startIndex+24);
+    thisProgramHeader->filesz = readAddr(startIndex+32);
+    thisProgramHeader->memsz = readAddr(startIndex+40);
+    thisProgramHeader->align = readAddr(startIndex+48);
+
+    return thisProgramHeader;
+}
 
 bool matchELFHeader(uint8_t* linuxMem, int startIndex)
 {
@@ -156,60 +103,12 @@ bool matchELFHeader(uint8_t* linuxMem, int startIndex)
     return true;
 }
 
-void printELF64Header(ELF64Header* inputHeader)
-{
-    printf("ELF64 Header Data\n");
-    printf("Type: %d\n", inputHeader->type);
-    printf("Machine: %d\n", inputHeader->machine);
-    printf("Version: %d\n", inputHeader->version);
-    printf("Entry Address: %08x\n", inputHeader->entry);
-    printf("Program Header Table Offset: %d\n", inputHeader->phoff);
-    printf("Section Header Table Offset: %d\n", inputHeader->shoff);
-    printf("Flags: %04x\n", inputHeader->flags);
-    printf("ELF header size: %d\n", inputHeader->ehsize);
-    printf("Program header table entry size: %d\n", inputHeader->phentsize);
-    printf("Program header table num entries: %d\n", inputHeader->phnum);
-    printf("Section header size: %d\n", inputHeader->shentsize);
-
-    printf("Section header num entries: %d\n", inputHeader->shnum);
-    printf("Section name string table index: %d\n\n", inputHeader->shstrndx);
-}
-
 // return true if ELF scraped
 bool tryReadELF(uint8_t* linuxMem, int startIndex, ELF64Header* thisHeader)
 {
     if(!matchELFHeader(linuxMem, startIndex))
     {
         return false;
-    }
-
-    uint32_t readHalf(int start)
-    {
-        uint32_t result = (uint32_t)linuxMem[start+1] << 8
-            | linuxMem[start];
-        return result;
-    }
-
-    uint32_t readWord(int start)
-    {
-        uint32_t result = (uint32_t)linuxMem[start+3] << 24
-            | linuxMem[start+2] << 16
-            | linuxMem[start+1] << 8
-            | linuxMem[start];
-        return result;
-    }
-
-    uint64_t readAddr(int start)
-    {
-        uint64_t result = (uint64_t)linuxMem[start+8] << 56
-            | linuxMem[start+7] << 48
-            | linuxMem[start+6] << 40
-            | linuxMem[start+5] << 32
-            | linuxMem[start+4] << 24
-            | linuxMem[start+3] << 16
-            | linuxMem[start+1] << 8
-            | linuxMem[start];
-        return result;
     }
 
     for(int i=0; i<16; i++)
@@ -225,6 +124,7 @@ bool tryReadELF(uint8_t* linuxMem, int startIndex, ELF64Header* thisHeader)
     }
     thisHeader->type = eType;
 
+    printf("This startIndex: %d\n", startIndex);
     thisHeader->startIndex = startIndex; 
     
     thisHeader->machine = readHalf(startIndex+18);
@@ -267,17 +167,20 @@ ProgramHeaderTable* getProgramHeaderTable(uint8_t* linuxMem, ELF64Header* thisHe
     return programHeaderList;
 }
 
-SectionHeaderTable* getSectionHeaderTable(uint8_t* linuxMem, ELF64Header* thisHeader)
+SectionHeaderTable* getSectionHeaderTable(ELF64Header* thisHeader)
 {
     SectionHeaderTable* sectionHeaderList = malloc(sizeof(SectionHeaderTable));
     sectionHeaderList->numEntries = thisHeader->shnum;
 
-    uint8_t* memoryHead = linuxMem;
-    memoryHead += thisHeader->startIndex;
-    memoryHead += thisHeader->shoff;
+    int SectionHeaderOffset = thisHeader->startIndex + thisHeader->shoff;
+
+    printf("SectionHeaderOffset is %d\n", SectionHeaderOffset);
 
     for(int i=0; i<sectionHeaderList->numEntries; i++)
     {
+        sectionHeaderList->list[i] = getSectionHeader(SectionHeaderOffset);
+        SectionHeaderOffset += thisHeader->shentsize;
+        /*
         HeaderEntry* thisEntry = malloc(sizeof(HeaderEntry));
         thisEntry->numBytes = thisHeader->shentsize;
 
@@ -287,46 +190,8 @@ SectionHeaderTable* getSectionHeaderTable(uint8_t* linuxMem, ELF64Header* thisHe
             entryHead[j] = memoryHead[(thisEntry->numBytes)*i + j];
         }
         sectionHeaderList->list[i] = thisEntry;
+        */
     }
     return sectionHeaderList;
-}
-
-void printHeaderEntry(HeaderEntry* entry)
-{
-    for(int i=0; i<entry->numBytes; i++)
-    {
-        printf("%02x",entry->data[i]);
-    }
-    printf("\n");
-}
-
-void printProgramHeaders(ProgramHeaderTable* progHList)
-{
-    int numEntries = progHList->numEntries;
-    if(numEntries == 0)
-    {
-        printf("This Program Header Table is empty!\n\n");
-        return;
-    }
-    for(int i=0; i<numEntries; i++)
-    {
-        printHeaderEntry(progHList->list[i]);
-    }
-    printf("\n");
-}
-
-void printSectionHeaders(SectionHeaderTable* sectHList)
-{
-    int numEntries = sectHList->numEntries;
-    if(numEntries == 0)
-    {
-        printf("This Section Header Table is empty!\n\n");
-        return;
-    }
-    for(int i=0; i<numEntries; i++)
-    {
-        printHeaderEntry(sectHList->list[i]);
-    }
-    printf("\n");
 }
 

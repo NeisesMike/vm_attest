@@ -19,7 +19,7 @@
 #define RAM_BASE 0x40000000
 #define N 10
 
-uint8_t onehundredmb[1024*1024*100];
+uint8_t Linux_Mem[1024*1024*100];
 
 int run(void)
 {
@@ -27,9 +27,9 @@ int run(void)
     while (1) {
         ready_wait();
 
-        memcpy(onehundredmb, ((char *)memdev), sizeof(uint8_t) * 1024 * 1000 * 100);
+        memcpy(Linux_Mem, ((char *)memdev), sizeof(uint8_t) * 1024 * 1000 * 100);
 
-        uint8_t* linuxMemory = (uint8_t*)onehundredmb;
+        uint8_t* linuxMemory = (uint8_t*)Linux_Mem;
 
         const int headersUpperBound = 100;
         ELF64Header* ELFList[headersUpperBound];
@@ -42,7 +42,7 @@ int run(void)
         int numELFs = 0;
         for (int j = 0; j < 1024*1000*100; j++)
         {
-            if(onehundredmb[j] == (uint8_t)0x7f)
+            if(Linux_Mem[j] == (uint8_t)0x7f)
             {
                 if(tryReadELF(linuxMemory, j, ELFList[numELFs]))
                 {
@@ -73,27 +73,48 @@ int run(void)
         printf("Max Prog entry size: %d\nMax Section entry size: %d\n", maxPHSize, maxSSize);
         */
     
-        ProgramHeaderTable* programHeaderTables[numELFs];
+        //ProgramHeaderTable* programHeaderTables[numELFs];
         SectionHeaderTable* sectionHeaderTables[numELFs];
         for(int i=0; i<numELFs; i++)
         {
-            printf("Program Header Entries for Scraped ELF: %d\n", i);
-            programHeaderTables[i] = getProgramHeaderTable(linuxMemory, ELFList[i]);
-            printProgramHeaders(programHeaderTables[i]);
+            ELF64Header* thisELF = ELFList[i];
+            SectionHeaderTable* thisSectionHeaderTable = getSectionHeaderTable(thisELF);
+            sectionHeaderTables[i] = thisSectionHeaderTable;
 
+
+            /*
+            uint8_t* sectionNameStringTable = thisSectionHeaderTable->list[thisELF->shstrndx];
             printf("Section Header Entries for Scraped ELF: %d\n", i);
-            sectionHeaderTables[i] = getSectionHeaderTable(linuxMemory, ELFList[i]);
-            printSectionHeaders(sectionHeaderTables[i]);
+            printAllSectionHeaders(sectionHeaderTables[i], sectionNameStringTable);
+            */
+
+
+            /*
+            printf("Program Header Entries for Scraped ELF: %d\n", i);
+            programHeaderTables[i] = getProgramHeaderTable(linuxMemory, thisELF);
+            printProgramHeaders(programHeaderTables[i]);
+            */
         }
 
+        ELF64Header* ELF0 = ELFList[0];
+        SectionHeaderTable* SHT0 = sectionHeaderTables[0];
+
+        SectionHeader64* sectionNameStringTableHeader = SHT0->list[ELF0->shstrndx];
+
+        printELF64Header(ELF0);
+        printAllSectionHeaders(SHT0, ELF0->shstrndx, ELF0->startIndex);
+
+        //printSectionNameStringTable(sectionNameStringTableHeader, ELF0->startIndex);
 
 
+        printf("done printing\n");
 
         //======================
         // clean up our garbage
         //======================
         for(int i=0; i<numELFs; i++)
         {
+            /*
             ProgramHeaderTable* thisProgramHeaderTable = programHeaderTables[i];
             for(int j=0; j<thisProgramHeaderTable->numEntries; j++)
             {
@@ -101,11 +122,12 @@ int run(void)
                 free(thisEntry);
             }
             free(thisProgramHeaderTable);
+            */
 
             SectionHeaderTable* thisSectionHeaderTable = sectionHeaderTables[i];
             for(int j=0; j<thisSectionHeaderTable->numEntries; j++)
             {
-                HeaderEntry* thisEntry = thisSectionHeaderTable->list[j];
+                SectionHeader64* thisEntry = thisSectionHeaderTable->list[j];
                 free(thisEntry);
             }
             free(thisSectionHeaderTable);
