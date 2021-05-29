@@ -3,7 +3,10 @@
 #include <camkes.h>
 #include <stdio.h>
 
-uint8_t Linux_Mem[1024*1024*100];
+//#define LINUX_MEMORY_SIZE 1024*1024*100
+// This constant is known via inspection
+#define LINUX_MEMORY_SIZE 104943616
+uint8_t Linux_Mem[LINUX_MEMORY_SIZE];
 
 typedef struct {
     int startIndex;
@@ -63,4 +66,20 @@ typedef struct {
     uint64_t memsz;
     uint64_t align;
 } ProgramHeader64;
+
+
+
+typedef struct {
+    uint32_t name;
+    unsigned char info;
+    unsigned char other;
+    uint16_t shndx;
+    uint64_t value;
+    uint64_t size;
+} ELF64Sym;
+
+typedef struct {
+    uint8_t numEntries;
+    ELF64Sym* list[500]
+} SymTab;
 

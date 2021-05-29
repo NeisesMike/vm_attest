@@ -14,12 +14,14 @@
 #include <camkes.h>
 #include <stdio.h>
 
-#include "scrape_manager.c"
+#include "pretty_printer.c"
+
+//#include "timer_interface.c"
 
 #define RAM_BASE 0x40000000
 #define N 10
 
-uint8_t Linux_Mem[1024*1024*100];
+//uint8_t Linux_Mem[1024*1024*100];
 
 int run(void)
 {
@@ -27,9 +29,10 @@ int run(void)
     while (1) {
         ready_wait();
 
+
+
         memcpy(Linux_Mem, ((char *)memdev), sizeof(uint8_t) * 1024 * 1000 * 100);
 
-        uint8_t* linuxMemory = (uint8_t*)Linux_Mem;
 
         const int headersUpperBound = 100;
         ELF64Header* ELFList[headersUpperBound];
@@ -44,13 +47,15 @@ int run(void)
         {
             if(Linux_Mem[j] == (uint8_t)0x7f)
             {
-                if(tryReadELF(linuxMemory, j, ELFList[numELFs]))
+                if(tryReadELF(j, ELFList[numELFs]))
                 {
                     numELFs++;
                 }
             }
         }
-        printf("\n\nWe scraped %d ELFs!\n\n", numELFs);
+
+        printf("\n\nWe found %d potential ELFs\n\n", numELFs);
+
         /*
         printf("Here is the first one:\n\n");
         printELF64Header(ELFList[0]);
@@ -96,18 +101,29 @@ int run(void)
             */
         }
 
-        ELF64Header* ELF0 = ELFList[0];
-        SectionHeaderTable* SHT0 = sectionHeaderTables[0];
 
+        int numGoodELFs = 0;
+        for(int i=0; i<numELFs; i++)
+        {
+            ELF64Header* thisELF = ELFList[i];
+            //SectionHeaderTable* thisSHT = sectionHeaderTables[i];
+            
+            if(printAllSectionHeaders(thisELF))
+            {
+                numGoodELFs++;
+            }
+            //SymTab* thisSymTab = getSymbolTable(thisELF);
+            //printELF64Header(thisELF);
+            //printAllSectionHeaders(thisSHT, thisELF->shstrndx, thisELF->startIndex);
+        }
+
+        printf("\n\nOut of %d potential ELFs, we found %d good ones.\n\n", numELFs, numGoodELFs);
+
+
+        /*
         SectionHeader64* sectionNameStringTableHeader = SHT0->list[ELF0->shstrndx];
-
-        printELF64Header(ELF0);
-        printAllSectionHeaders(SHT0, ELF0->shstrndx, ELF0->startIndex);
-
-        //printSectionNameStringTable(sectionNameStringTableHeader, ELF0->startIndex);
-
-
-        printf("done printing\n");
+        printSectionContents(sectionNameStringTableHeader, ELF0->startIndex);
+        */
 
         //======================
         // clean up our garbage

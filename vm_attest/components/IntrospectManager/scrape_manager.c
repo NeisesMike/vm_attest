@@ -3,8 +3,6 @@
 #include <camkes.h>
 #include <stdio.h>
 
-#include "pretty_printer.c"
-
 uint32_t readHalf(int start)
 {
     uint32_t result = (uint32_t)Linux_Mem[start+1] << 8
@@ -52,7 +50,7 @@ SectionHeader64* getSectionHeader(int startIndex)
     return thisSectionHeader;
 }
 
-ProgramHeader64* getProgramHeader(uint8_t* linuxMem, int startIndex)
+ProgramHeader64* getProgramHeader(int startIndex)
 {
     ProgramHeader64* thisProgramHeader = malloc(sizeof(ProgramHeader64));
 
@@ -68,7 +66,7 @@ ProgramHeader64* getProgramHeader(uint8_t* linuxMem, int startIndex)
     return thisProgramHeader;
 }
 
-bool matchELFHeader(uint8_t* linuxMem, int startIndex)
+bool matchELFHeader(int startIndex)
 {
     // build the magic byte string
     uint8_t byte0 = (uint8_t)0x7f;
@@ -95,7 +93,7 @@ bool matchELFHeader(uint8_t* linuxMem, int startIndex)
     // look for the magic byte string
     for(int i=0; i<16; i++)
     {
-        if(linuxMem[startIndex+i] != magicBytes[i])
+        if(Linux_Mem[startIndex+i] != magicBytes[i])
         {
             return false;
         }
@@ -104,16 +102,16 @@ bool matchELFHeader(uint8_t* linuxMem, int startIndex)
 }
 
 // return true if ELF scraped
-bool tryReadELF(uint8_t* linuxMem, int startIndex, ELF64Header* thisHeader)
+bool tryReadELF(int startIndex, ELF64Header* thisHeader)
 {
-    if(!matchELFHeader(linuxMem, startIndex))
+    if(!matchELFHeader(startIndex))
     {
         return false;
     }
 
     for(int i=0; i<16; i++)
     {
-        thisHeader->ident[i] = linuxMem[startIndex+i];
+        thisHeader->ident[i] = Linux_Mem[startIndex+i];
 
     }
 
@@ -124,7 +122,6 @@ bool tryReadELF(uint8_t* linuxMem, int startIndex, ELF64Header* thisHeader)
     }
     thisHeader->type = eType;
 
-    printf("This startIndex: %d\n", startIndex);
     thisHeader->startIndex = startIndex; 
     
     thisHeader->machine = readHalf(startIndex+18);
@@ -143,12 +140,12 @@ bool tryReadELF(uint8_t* linuxMem, int startIndex, ELF64Header* thisHeader)
     return true;
 }
 
-ProgramHeaderTable* getProgramHeaderTable(uint8_t* linuxMem, ELF64Header* thisHeader)
+ProgramHeaderTable* getProgramHeaderTable(ELF64Header* thisHeader)
 {
     ProgramHeaderTable* programHeaderList = malloc(sizeof(ProgramHeaderTable));
     programHeaderList->numEntries = thisHeader->phnum;
 
-    uint8_t* memoryHead = linuxMem;
+    uint8_t* memoryHead = Linux_Mem;
     memoryHead += thisHeader->startIndex;
     memoryHead += thisHeader->phoff;
 
@@ -174,8 +171,6 @@ SectionHeaderTable* getSectionHeaderTable(ELF64Header* thisHeader)
 
     int SectionHeaderOffset = thisHeader->startIndex + thisHeader->shoff;
 
-    printf("SectionHeaderOffset is %d\n", SectionHeaderOffset);
-
     for(int i=0; i<sectionHeaderList->numEntries; i++)
     {
         sectionHeaderList->list[i] = getSectionHeader(SectionHeaderOffset);
@@ -195,3 +190,30 @@ SectionHeaderTable* getSectionHeaderTable(ELF64Header* thisHeader)
     return sectionHeaderList;
 }
 
+SymTab* getSymbolTable(ELF64Header* thisELFHeader)
+{
+    SectionHeaderTable* SHTable = getSectionHeaderTable(thisELFHeader);
+    SectionHeader64* stringTab = SHTable->list[thisELFHeader->shstrndx];
+    for(int i=0; i<SHTable->numEntries; i++)
+    {
+        SectionHeader64* thisSectHeader = SHTable->list[i];
+        char* headerName = (char*)Linux_Mem;
+        int offset = thisELFHeader->startIndex + stringTab->offset + thisSectHeader->name;
+        if(0 <= offset && offset < LINUX_MEMORY_SIZE)
+        {
+            headerName += offset;
+        }
+        else
+        {
+            headerName = "";
+        }
+
+        if(strcmp(headerName, ".symtab") == 0)
+        {
+            printf("Found a symtab!\n");
+        }
+
+
+    }
+    return NULL;
+}

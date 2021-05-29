@@ -6,10 +6,12 @@
 #include<inttypes.h>
 
 #include "type_defs.c"
+#include "scrape_manager.c"
 
 void printELF64Header(ELF64Header* inputHeader)
 {
     printf("ELF64 Header Data\n");
+    printf("startIndex: %d\n", inputHeader->startIndex);
     printf("Type: %d\n", inputHeader->type);
     printf("Machine: %d\n", inputHeader->machine);
     printf("Version: %d\n", inputHeader->version);
@@ -35,15 +37,46 @@ void printHeaderEntry(HeaderEntry* entry)
     printf("\n");
 }
 
-void printSectionHeader(SectionHeader64* header, SectionHeader64* sectionNameStringTableHeader, int fileStartIndex)
+void printSectionContents(SectionHeader64* thisHeader, int fileStartIndex)
 {
-    printf("Section header contents:\n");
+    int payloadOffset = fileStartIndex + thisHeader->offset;
+    int payloadSize = thisHeader->size;
+
+    printf("Section Contents:\n");
+    for(int i=0; i<payloadSize; i++)
+    {
+        printf("%c", Linux_Mem[payloadOffset + i]);
+    }
+}
+
+// return whether we were able to print as expected
+bool printSectionHeader(SectionHeader64* header, ELF64Header* thisELF)
+{
+    SectionHeader64* strTabHeader = getSectionHeaderTable(thisELF)->list[thisELF->shstrndx];
 
     //get name as a string
     char* sectionName = (char*)Linux_Mem;
-    sectionName += (fileStartIndex + sectionNameStringTableHeader->offset + header->name);
+    int offset = thisELF->startIndex + strTabHeader->offset + header->name;
+    if(thisELF->startIndex < offset && offset < LINUX_MEMORY_SIZE)
+    {
+        if(header->name == 0)
+        {
+            sectionName = "(NULL)";
+        }
+        else
+        {
+            sectionName += offset;
+        }
+    }
+    else
+    {
+        sectionName = "NOT_FOUND";
+        return false;
+    }
 
-    printf("Name:      %s\n", sectionName);
+    //printf("Section header contents:\n");
+    printf("Section Name:      %s\n", sectionName);
+    /*
     printf("Type:      %04x\n", header->type);
     printf("Flags:     %08x\n", header->flags);
     printf("Addr:      %08x\n", header->addr);
@@ -54,6 +87,45 @@ void printSectionHeader(SectionHeader64* header, SectionHeader64* sectionNameStr
     printf("Addralign: %08x\n", header->addralign);
     printf("Entsize:   %08x\n", header->entsize);
     printf("\n");
+    */
+
+    if(strcmp(sectionName, ".rodata") == 0)
+    {
+        printf("We found some read-only data! Here it is:\n");
+        printf("\n\n===========================================================\n");
+        printf("===========================================================\n\n");
+        printSectionContents(header, thisELF->startIndex);
+        printf("\n\n===========================================================\n");
+        printf("===========================================================\n\n");
+    }
+    return true;
+}
+
+// return whether this ELF was busted
+bool printAllSectionHeaders(ELF64Header* thisELF)
+{
+    SectionHeaderTable* sectHTable = getSectionHeaderTable(thisELF);
+    int stringTableIndex = thisELF->shstrndx;
+
+    int numEntries = sectHTable->numEntries;
+    if(numEntries == 0)
+    {
+        printf("This Section Header Table is empty!\n\n");
+        return;
+    }
+
+    printf("This Section Header Table has %d entries\n", numEntries);
+    for(int i=0; i<numEntries; i++)
+    {
+        if(!printSectionHeader(sectHTable->list[i], thisELF))
+        {
+            printf("But the entries were busted...\n");
+            return false;
+        }
+    }
+    
+    printf("\n");
+    return true;
 }
 
 void printProgramHeaders(ProgramHeaderTable* progHList)
@@ -69,37 +141,5 @@ void printProgramHeaders(ProgramHeaderTable* progHList)
         printHeaderEntry(progHList->list[i]);
     }
     printf("\n");
-}
-
-void printAllSectionHeaders(SectionHeaderTable* sectHList, int stringTableIndex, int fileStartIndex)
-{
-    int numEntries = sectHList->numEntries;
-    if(numEntries == 0)
-    {
-        printf("This Section Header Table is empty!\n\n");
-        return;
-    }
-
-    SectionHeader64* sectionNameStringTable = sectHList->list[stringTableIndex];
-
-    printf("We'll print %d entries\n", numEntries);
-    for(int i=0; i<numEntries; i++)
-    {
-        printSectionHeader(sectHList->list[i], sectionNameStringTable, fileStartIndex);
-    }
-    
-    printf("\n");
-}
-
-void printSectionNameStringTable(SectionHeader64* stringTableHeader, int fileStartIndex)
-{
-    int strTabSectOffset = fileStartIndex + stringTableHeader->offset;
-    int strTabSectSize = stringTableHeader->size;
-
-    printf("String Table Contents:\n");
-    for(int i=0; i<strTabSectSize; i++)
-    {
-        printf("%c", Linux_Mem[strTabSectOffset + i]);
-    }
 }
 
