@@ -101,17 +101,46 @@ bool printSectionHeader(SectionHeader64* header, ELF64Header* thisELF)
     return true;
 }
 
+void printProgramHeaderRaw(ProgramHeader64* header, ELF64Header* thisELF)
+{
+    printf("Program header contents:\n");
+    printf("Type:      %04x\n", header->type);
+    printf("Flags:     %08x\n", header->flags);
+    printf("Offset:    %08x\n", header->offset);
+    printf("Vaddr:      %08x\n", header->vaddr);
+    printf("Paddr:      %08x\n", header->paddr);
+    printf("Filesz:      %08x\n", header->filesz);
+    printf("Memsz:      %08x\n", header->memsz);
+    printf("Align:      %08x\n", header->align);
+    printf("\n");
+}
+
+void printProgramHeaders(ELF64Header* thisELF)
+{
+    ProgramHeaderTable* progHTable = getProgramHeaderTable(thisELF);
+    int numEntries = progHTable->numEntries;
+    if(numEntries == 0)
+    {
+        printf("This Program Header Table is empty!\n\n");
+        return;
+    }
+    for(int i=0; i<numEntries; i++)
+    {
+        printProgramHeaderRaw(progHTable->list[i], thisELF);
+    }
+    printf("\n");
+}
+
 // return whether this ELF was busted
 bool printAllSectionHeaders(ELF64Header* thisELF)
 {
     SectionHeaderTable* sectHTable = getSectionHeaderTable(thisELF);
-    int stringTableIndex = thisELF->shstrndx;
 
     int numEntries = sectHTable->numEntries;
     if(numEntries == 0)
     {
         printf("This Section Header Table is empty!\n\n");
-        return;
+        return true;
     }
 
     printf("This Section Header Table has %d entries\n", numEntries);
@@ -128,18 +157,41 @@ bool printAllSectionHeaders(ELF64Header* thisELF)
     return true;
 }
 
-void printProgramHeaders(ProgramHeaderTable* progHList)
+void printSectionHeaderRaw(SectionHeader64* header, ELF64Header* thisELF)
 {
-    int numEntries = progHList->numEntries;
-    if(numEntries == 0)
-    {
-        printf("This Program Header Table is empty!\n\n");
-        return;
-    }
-    for(int i=0; i<numEntries; i++)
-    {
-        printHeaderEntry(progHList->list[i]);
-    }
+    printf("Section header contents:\n");
+    printf("Section Name: %08x\n", header->name);
+    printf("Type:      %08x\n", header->type);
+    printf("Flags:     %016x\n", header->flags);
+    printf("Addr:      %016x\n", header->addr);
+    printf("Offset:    %016x\n", header->offset);
+    printf("Size:      %016x\n", header->size);
+    printf("Link:      %08x\n", header->link);
+    printf("Info:      %08x\n", header->info);
+    printf("Addralign: %016x\n", header->addralign);
+    printf("Entsize:   %016x\n", header->entsize);
     printf("\n");
 }
+
+void printAllSectionHeadersRaw(ELF64Header* thisELF)
+{
+    SectionHeaderTable* sectHTable = getSectionHeaderTable(thisELF);
+    int stringTableIndex = thisELF->shstrndx;
+
+    int numEntries = sectHTable->numEntries;
+    if(numEntries == 0)
+    {
+        printf("This Section Header Table is empty!\n\n");
+        return;
+    }
+
+    printf("This Section Header Table has %d entries\n", numEntries);
+    for(int i=0; i<numEntries; i++)
+    {
+        printSectionHeaderRaw(sectHTable->list[i], thisELF);
+    }
+    
+    printf("\n");
+}
+
 

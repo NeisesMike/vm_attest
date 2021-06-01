@@ -3,9 +3,11 @@
 #include <camkes.h>
 #include <stdio.h>
 
-uint32_t readHalf(int start)
+uint64_t moduleOffset = 0x0000800000000000;
+
+uint16_t readHalf(int start)
 {
-    uint32_t result = (uint32_t)Linux_Mem[start+1] << 8
+    uint16_t result = (uint16_t)Linux_Mem[start+1] << 8
         | Linux_Mem[start];
     return result;
 }
@@ -13,22 +15,22 @@ uint32_t readHalf(int start)
 uint32_t readWord(int start)
 {
     uint32_t result = (uint32_t)Linux_Mem[start+3] << 24
-        | Linux_Mem[start+2] << 16
-        | Linux_Mem[start+1] << 8
-        | Linux_Mem[start];
+        | (uint32_t)Linux_Mem[start+2] << 16
+        | (uint32_t)Linux_Mem[start+1] << 8
+        | (uint32_t)Linux_Mem[start];
     return result;
 }
 
 uint64_t readAddr(int start)
 {
     uint64_t result = (uint64_t)Linux_Mem[start+8] << 56
-        | Linux_Mem[start+7] << 48
-        | Linux_Mem[start+6] << 40
-        | Linux_Mem[start+5] << 32
-        | Linux_Mem[start+4] << 24
-        | Linux_Mem[start+3] << 16
-        | Linux_Mem[start+1] << 8
-        | Linux_Mem[start];
+        | (uint64_t)Linux_Mem[start+7] << 48
+        | (uint64_t)Linux_Mem[start+6] << 40
+        | (uint64_t)Linux_Mem[start+5] << 32
+        | (uint64_t)Linux_Mem[start+4] << 24
+        | (uint64_t)Linux_Mem[start+3] << 16
+        | (uint64_t)Linux_Mem[start+1] << 8
+        | (uint64_t)Linux_Mem[start];
     return result;
 }
 
@@ -73,7 +75,7 @@ bool matchELFHeader(int startIndex)
     uint8_t byte1 = (uint8_t)0x45;
     uint8_t byte2 = (uint8_t)0x4c;
     uint8_t byte3 = (uint8_t)0x46;
-    uint8_t byte4 = (uint8_t)0x02;
+    uint8_t classbyte = (uint8_t)0x02;
     uint8_t onebyte = (uint8_t)0x01;
     uint8_t nullbyte = (uint8_t)0x00;
 
@@ -82,7 +84,7 @@ bool matchELFHeader(int startIndex)
     magicBytes[1] = byte1;
     magicBytes[2] = byte2;
     magicBytes[3] = byte3;
-    magicBytes[4] = byte4;
+    magicBytes[4] = classbyte;
     magicBytes[5] = onebyte;
     magicBytes[6] = onebyte;
     for(int i=7; i<16; i++)
@@ -142,26 +144,17 @@ bool tryReadELF(int startIndex, ELF64Header* thisHeader)
 
 ProgramHeaderTable* getProgramHeaderTable(ELF64Header* thisHeader)
 {
-    ProgramHeaderTable* programHeaderList = malloc(sizeof(ProgramHeaderTable));
-    programHeaderList->numEntries = thisHeader->phnum;
+    ProgramHeaderTable* thisProgramHeaderTable = malloc(sizeof(ProgramHeaderTable));
+    thisProgramHeaderTable->numEntries = thisHeader->phnum;
 
-    uint8_t* memoryHead = Linux_Mem;
-    memoryHead += thisHeader->startIndex;
-    memoryHead += thisHeader->phoff;
+    int ProgramHeaderOffset = thisHeader->startIndex + thisHeader->phoff;
 
-    for(int i=0; i<programHeaderList->numEntries; i++)
+    for(int i=0; i<thisProgramHeaderTable->numEntries; i++)
     {
-        HeaderEntry* thisEntry = malloc(sizeof(HeaderEntry));
-        thisEntry->numBytes = thisHeader->phentsize;
-
-        uint8_t* entryHead = (uint8_t*)thisEntry->data;
-        for(int j=0; j<thisEntry->numBytes; j++)
-        {
-            entryHead[j] = memoryHead[(thisEntry->numBytes)*i + j];
-        }
-        programHeaderList->list[i] = thisEntry;
+        thisProgramHeaderTable->list[i] = getProgramHeader(ProgramHeaderOffset);
+        ProgramHeaderOffset += thisHeader->phentsize;
     }
-    return programHeaderList;
+    return thisProgramHeaderTable;
 }
 
 SectionHeaderTable* getSectionHeaderTable(ELF64Header* thisHeader)
@@ -169,12 +162,12 @@ SectionHeaderTable* getSectionHeaderTable(ELF64Header* thisHeader)
     SectionHeaderTable* sectionHeaderList = malloc(sizeof(SectionHeaderTable));
     sectionHeaderList->numEntries = thisHeader->shnum;
 
-    int SectionHeaderOffset = thisHeader->startIndex + thisHeader->shoff;
+    uint64_t SectionHeaderOffset = (uint64_t)thisHeader->startIndex + thisHeader->shoff;
 
     for(int i=0; i<sectionHeaderList->numEntries; i++)
     {
         sectionHeaderList->list[i] = getSectionHeader(SectionHeaderOffset);
-        SectionHeaderOffset += thisHeader->shentsize;
+        SectionHeaderOffset += (uint64_t)thisHeader->shentsize;
         /*
         HeaderEntry* thisEntry = malloc(sizeof(HeaderEntry));
         thisEntry->numBytes = thisHeader->shentsize;

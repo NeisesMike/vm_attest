@@ -32,11 +32,6 @@ typedef struct {
 } HeaderEntry;
 
 typedef struct {
-    uint8_t numEntries;
-    HeaderEntry* list[100];
-} ProgramHeaderTable;
-
-typedef struct {
     uint32_t name;
     uint32_t type;
     uint64_t flags;
@@ -67,7 +62,10 @@ typedef struct {
     uint64_t align;
 } ProgramHeader64;
 
-
+typedef struct {
+    uint8_t numEntries;
+    ProgramHeader64* list[100];
+} ProgramHeaderTable;
 
 typedef struct {
     uint32_t name;
@@ -80,6 +78,6 @@ typedef struct {
 
 typedef struct {
     uint8_t numEntries;
-    ELF64Sym* list[500]
+    ELF64Sym* list[500];
 } SymTab;
 

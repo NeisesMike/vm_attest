@@ -78,7 +78,7 @@ int run(void)
         printf("Max Prog entry size: %d\nMax Section entry size: %d\n", maxPHSize, maxSSize);
         */
     
-        //ProgramHeaderTable* programHeaderTables[numELFs];
+        ProgramHeaderTable* programHeaderTables[numELFs];
         SectionHeaderTable* sectionHeaderTables[numELFs];
         for(int i=0; i<numELFs; i++)
         {
@@ -96,9 +96,8 @@ int run(void)
 
             /*
             printf("Program Header Entries for Scraped ELF: %d\n", i);
-            programHeaderTables[i] = getProgramHeaderTable(linuxMemory, thisELF);
-            printProgramHeaders(programHeaderTables[i]);
             */
+            programHeaderTables[i] = getProgramHeaderTable(thisELF);
         }
 
 
@@ -107,17 +106,30 @@ int run(void)
         {
             ELF64Header* thisELF = ELFList[i];
             //SectionHeaderTable* thisSHT = sectionHeaderTables[i];
-            
+
+            printELF64Header(thisELF);
+            printProgramHeaders(thisELF);
             if(printAllSectionHeaders(thisELF))
             {
                 numGoodELFs++;
             }
+            printf("================================================\n");
+            printf("================================================\n");
+            
+
+
+
             //SymTab* thisSymTab = getSymbolTable(thisELF);
             //printELF64Header(thisELF);
             //printAllSectionHeaders(thisSHT, thisELF->shstrndx, thisELF->startIndex);
         }
 
         printf("\n\nOut of %d potential ELFs, we found %d good ones.\n\n", numELFs, numGoodELFs);
+
+        /*
+        printELF64Header(ELFList[2]);
+        printAllSectionHeadersRaw(ELFList[2]);
+        */
 
 
         /*
@@ -130,15 +142,13 @@ int run(void)
         //======================
         for(int i=0; i<numELFs; i++)
         {
-            /*
             ProgramHeaderTable* thisProgramHeaderTable = programHeaderTables[i];
             for(int j=0; j<thisProgramHeaderTable->numEntries; j++)
             {
-                HeaderEntry* thisEntry = thisProgramHeaderTable->list[j];
+                ProgramHeader64* thisEntry = thisProgramHeaderTable->list[j];
                 free(thisEntry);
             }
             free(thisProgramHeaderTable);
-            */
 
             SectionHeaderTable* thisSectionHeaderTable = sectionHeaderTables[i];
             for(int j=0; j<thisSectionHeaderTable->numEntries; j++)
