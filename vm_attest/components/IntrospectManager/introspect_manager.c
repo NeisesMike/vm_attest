@@ -14,103 +14,14 @@
 #include <camkes.h>
 #include <stdio.h>
 
+#include "pretty_printer.c"
+
+//#include "timer_interface.c"
+
 #define RAM_BASE 0x40000000
 #define N 10
 
-uint32_t fib_buf[N];
-
-
-/*
-// Read from vm
-int8_t* my_dataport_read()
-{
-    char str[4096];
-    sprintf(str, "%s\n", dest);
-    int8_t* ret = (int8_t*)str;
-    return( ret );
-}
-
-// Write to vm
-void my_dataport_write( char* string )
-{
-    memset(dest, '\0', 4096);
-    strcpy(dest, string);
-    return;
-}
-*/
-
-// Write to cakeml
-void cake_send()
-{
-    int8_t* packagePtr = malloc(sizeof(int8_t)*N);
-    //int8_t* packagePtr = (int8_t*)fib_buf;
-    printf("sending to cake: ");
-    for (int i = 0; i < N; i++) {
-        printf("%d ", ((int8_t*)fib_buf)[i*4]);
-        packagePtr[i] = ((int8_t*)fib_buf)[i*4];
-    }
-    printf("\n");
-    
-    MUTEXOP(cake_dispatch_sem_wait())
-    memset(cake_write_port, '\0', 4096);
-    strcpy(cake_write_port, (char*)packagePtr);
-    MUTEXOP(cake_dispatch_sem_post())
-    cake_periodic_dispatch_notification_emit();
-
-    return;
-}
-void cake_send_old( int8_t* package )
-{
-    MUTEXOP(cake_dispatch_sem_wait())
-    memset(cake_write_port, '\0', 4096);
-    strcpy(cake_write_port, (char*)package);
-    MUTEXOP(cake_dispatch_sem_post())
-    cake_periodic_dispatch_notification_emit();
-    return;
-}
-
-// Read from cakeml
-int8_t* cake_recv()
-{
-    MUTEXOP(cake_dispatch_sem_wait())
-    char str[4096];
-    sprintf(str, "%s\n", cake_write_port);
-    int8_t* ret = (int8_t*)str;
-    MUTEXOP(cake_dispatch_sem_post());
-    return( ret );
-}
-
-/*
-int run(void)
-{
-    //my_dataport_write( "This is a test from a camkes component.\n" );
-    printf("ROUTER PRINT!");
-
-    /*
-    ** Wait for an event from the vm
-    ** Read what was sent
-    ** Send back a success response
-    ** Send the package to cakeml
-    ** Get response from cakeml
-    ** Send the cakeml response to the vm
-    */
-    /*
-    while (1) {
-        ready_wait();
-        int8_t* package = my_dataport_read();
-        printf("Got an event and: %s\n", package);
-        cake_send( package );
-        done_emit_underlying();
-        int8_t* cakePackage = cake_recv();
-        my_dataport_write( "Greetings!" );
-        printf("Got back from Cake: %s\n", (char*)cakePackage);
-        my_dataport_write( (char*)cakePackage );
-    }
-    
-    return 0;
-}
-    */
-
+//uint8_t Linux_Mem[1024*1024*100];
 
 int run(void)
 {
@@ -118,35 +29,147 @@ int run(void)
     while (1) {
         ready_wait();
 
-        seL4_Word paddr = *(seL4_Word *)introspect_data;
-        printf("paddr in component 0x%x\n", paddr);
 
-        seL4_Word offset = paddr - RAM_BASE;
 
-        printf("offset in component 0x%x\n", offset);
+        memcpy(Linux_Mem, ((char *)memdev), sizeof(uint8_t) * 1024 * 1000 * 100);
 
-        memcpy(fib_buf, ((char *)memdev + offset), sizeof(uint32_t) * N);
 
-        //print data from inside linux process
-        for (int i = 0; i < 10; i++) {
-            printf("camkes_fib[%d]@%p = %d, ", i, (fib_buf + i), fib_buf[i]);
+        const int headersUpperBound = 100;
+        ELF64Header* ELFList[headersUpperBound];
+
+        for(int i=0; i<headersUpperBound; i++)
+        {
+            ELFList[i] = malloc(sizeof(ELF64Header));
         }
 
-        printf("\n");
+        int numELFs = 0;
+        for (int j = 0; j < 1024*1000*100; j++)
+        {
+            if(Linux_Mem[j] == (uint8_t)0x7f)
+            {
+                if(tryReadELF(j, ELFList[numELFs]))
+                {
+                    numELFs++;
+                }
+            }
+        }
+
+        printf("\n\nWe found %d potential ELFs\n\n", numELFs);
+
+        /*
+        printf("Here is the first one:\n\n");
+        printELF64Header(ELFList[0]);
+        */
+
+        /*
+        int maxPHSize = 0;
+        int maxSSize = 0;
+        for(int i=0; i<numELFs; i++)
+        {
+            if(ELFList[i]->phentsize > maxPHSize)
+            {
+                maxPHSize = ELFList[i]->phentsize;
+            }
+            if(ELFList[i]->shentsize > maxSSize)
+            {
+                maxSSize = ELFList[i]->shentsize;
+            }
+        }
+        printf("Max Prog entry size: %d\nMax Section entry size: %d\n", maxPHSize, maxSSize);
+        */
+    
+        ProgramHeaderTable* programHeaderTables[numELFs];
+        SectionHeaderTable* sectionHeaderTables[numELFs];
+        for(int i=0; i<numELFs; i++)
+        {
+            ELF64Header* thisELF = ELFList[i];
+            SectionHeaderTable* thisSectionHeaderTable = getSectionHeaderTable(thisELF);
+            sectionHeaderTables[i] = thisSectionHeaderTable;
+
+
+            /*
+            uint8_t* sectionNameStringTable = thisSectionHeaderTable->list[thisELF->shstrndx];
+            printf("Section Header Entries for Scraped ELF: %d\n", i);
+            printAllSectionHeaders(sectionHeaderTables[i], sectionNameStringTable);
+            */
+
+
+            /*
+            printf("Program Header Entries for Scraped ELF: %d\n", i);
+            */
+            programHeaderTables[i] = getProgramHeaderTable(thisELF);
+        }
+
+
+        int numGoodELFs = 0;
+        for(int i=0; i<numELFs; i++)
+        {
+            ELF64Header* thisELF = ELFList[i];
+            //SectionHeaderTable* thisSHT = sectionHeaderTables[i];
+
+            printELF64Header(thisELF);
+            printProgramHeaders(thisELF);
+            if(printAllSectionHeaders(thisELF))
+            {
+                numGoodELFs++;
+            }
+            printf("================================================\n");
+            printf("================================================\n");
+            
+
+
+
+            //SymTab* thisSymTab = getSymbolTable(thisELF);
+            //printELF64Header(thisELF);
+            //printAllSectionHeaders(thisSHT, thisELF->shstrndx, thisELF->startIndex);
+        }
+
+        printf("\n\nOut of %d potential ELFs, we found %d good ones.\n\n", numELFs, numGoodELFs);
+
+        /*
+        printELF64Header(ELFList[2]);
+        printAllSectionHeadersRaw(ELFList[2]);
+        */
+
+
+        /*
+        SectionHeader64* sectionNameStringTableHeader = SHT0->list[ELF0->shstrndx];
+        printSectionContents(sectionNameStringTableHeader, ELF0->startIndex);
+        */
+
+        //======================
+        // clean up our garbage
+        //======================
+        for(int i=0; i<numELFs; i++)
+        {
+            ProgramHeaderTable* thisProgramHeaderTable = programHeaderTables[i];
+            for(int j=0; j<thisProgramHeaderTable->numEntries; j++)
+            {
+                ProgramHeader64* thisEntry = thisProgramHeaderTable->list[j];
+                free(thisEntry);
+            }
+            free(thisProgramHeaderTable);
+
+            SectionHeaderTable* thisSectionHeaderTable = sectionHeaderTables[i];
+            for(int j=0; j<thisSectionHeaderTable->numEntries; j++)
+            {
+                SectionHeader64* thisEntry = thisSectionHeaderTable->list[j];
+                free(thisEntry);
+            }
+            free(thisSectionHeaderTable);
+        }
+        for(int i=0; i<headersUpperBound; i++)
+        {
+            if(ELFList[i])
+            {
+                free(ELFList[i]);
+                continue;
+            }
+            break;
+        }
 
         done_emit_underlying();
         done_emit();
-
-        //send data from inside linux over to cake
-        cake_send();
-
-        //wait for cake to process
-        cake_ready_wait();
-        int8_t* cakePackage = cake_recv();
-        printf("Got back from Cake:\n%s", (char*)cakePackage);
-        cake_done_emit_underlying();
-        cake_done_emit();
-
     }
 
     return 0;

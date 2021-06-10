@@ -23,13 +23,13 @@ import <SerialServer/SerialServer.camkes>;
 import <TimeServer/TimeServer.camkes>;
 
 import "components/IntrospectManager/introMan.camkes";
-import "components/CakeServer/cake_server.camkes";
+//import "components/CakeServer/cake_server.camkes";
 
 component VM {
     VM_INIT_DEF()
     
     //guest memory region
-    dataport Buf memdev;
+    dataport Buf(2048) memdev;
 
     //data to pass through to memdev to look at
     dataport Buf introspect_data;
@@ -44,7 +44,7 @@ assembly {
         VM_GENERAL_COMPOSITION_DEF()
         VM_COMPOSITION_DEF(0)
         component IntrospectManager md;
-        component CakeServer cake_server;
+        //component CakeServer cake_server;
 
         connection seL4Notification event_conn_0(from vm0.ready,
                                              to md.ready);
@@ -59,13 +59,13 @@ assembly {
         connection seL4VMDTBPassthrough vm_dtb(from vm0.dtb_self, to vm0.dtb);
 
 
-        connection seL4Notification event_conn_2(from md.cake_periodic_dispatch_notification, to cake_server.cake_periodic_dispatch_notification);
+        //connection seL4Notification event_conn_2(from md.cake_periodic_dispatch_notification, to cake_server.cake_periodic_dispatch_notification);
 
-        connection seL4SharedData conn3(from md.cake_write_port, to cake_server.cake_read_port);
-        connection seL4Notification event_conn_5(from cake_server.ready,
-                                             to md.cake_ready);
-        connection seL4GlobalAsynch event_conn_6(from md.cake_done,
-                                             to cake_server.done);
+        //connection seL4SharedData conn3(from md.cake_write_port, to cake_server.cake_read_port);
+        //connection seL4Notification event_conn_5(from cake_server.ready,
+                                             //to md.cake_ready);
+        //connection seL4GlobalAsynch event_conn_6(from md.cake_done,
+         //                                    to cake_server.done);
     }
     configuration {
         VM_GENERAL_CONFIGURATION_DEF()

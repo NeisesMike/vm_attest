@@ -5,7 +5,7 @@ component IntrospectManager {
     control;
 
     // guest memory connection
-    dataport Buf memdev;
+    dataport Buf(2048) memdev;
     // data to introspect
     dataport Buf introspect_data;
 
@@ -17,11 +17,11 @@ component IntrospectManager {
     //dataport Buf(4096) src;
 
     // cake signals
-    consumes Ready cake_ready;
-    emits Done cake_done;
+//    consumes Ready cake_ready;
+//    emits Done cake_done;
 
-    dataport Buf(4096) cake_write_port;
-    has semaphore cake_dispatch_sem;
-    emits Notification cake_periodic_dispatch_notification;
+//    dataport Buf(4096) cake_write_port;
+//    has semaphore cake_dispatch_sem;
+//    emits Notification cake_periodic_dispatch_notification;
 }
 

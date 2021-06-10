@@ -21,7 +21,7 @@ echo "Copy some build scripts..." &&
 cp ../../buildScripts/* . &&
 echo "Generate cakeml build script..." &&
 cd ../.. &&
-(rm ./vm_attest/components/CakeServer/buildCakeDocker.sh || true) &&
+(rm ./vm_attest/components/CakeServer/buildCakeDocker.sh || echo "and that's no problem!") &&
 cp ./vm_attest/components/CakeServer/buildCakeTemplate.sh vm_attest/components/CakeServer/buildCakeDocker.sh &&
 
 echo "

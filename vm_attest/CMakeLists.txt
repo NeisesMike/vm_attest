@@ -137,7 +137,7 @@ DeclareCAmkESComponent(VM SOURCES src/cross_vm_connection.c src/init_dataport_ra
 #DeclareCAmkESComponent(introspect_memdev SOURCES components/introspect_component.c)
 
 #add_subdirectory(components/Router)
-add_subdirectory(components/CakeServer)
+#add_subdirectory(components/CakeServer)
 add_subdirectory(components/IntrospectManager)
 
 # Declare root server
