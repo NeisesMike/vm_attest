@@ -46,7 +46,6 @@ typedef struct {
 
 typedef struct {
     uint8_t numEntries;
-    //HeaderEntry* list[100];
     SectionHeader64* list[100];
 } SectionHeaderTable;
 
