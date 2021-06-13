@@ -1,3 +1,0 @@
-Public Key:
-Modulus: CA16A5F5
-Exponent: 101
