@@ -2,4 +2,9 @@ dockerStuff
 camkes*
 archive_vm_attest
 cake64
+cake32
+get-docker.sh
+connection_kernel_module
+introspect
+introspect_apps_mike
 *.swp
