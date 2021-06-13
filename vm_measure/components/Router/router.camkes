@@ -1,0 +1,15 @@
+
+component Router {
+    include <sb_proc_types.h>;
+    include <sp_int8_t.h>;
+    control;
+    consumes Ready ready;
+    emits Done done;
+    //dataport Buf(4096) dest;
+    //dataport Buf(4096) src;
+
+    //dataport Buf(4096) sb_write_port;
+    //has semaphore sb_dispatch_sem;
+    //emits Notification sb_dest_periodic_dispatch_notification;
+}
+

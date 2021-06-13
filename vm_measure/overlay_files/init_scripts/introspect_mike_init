@@ -1,0 +1,9 @@
+#!/bin/sh
+# devtmpfs does not get automounted for initramfs
+/bin/mount -t devtmpfs devtmpfs /dev
+exec 0</dev/console
+exec 1>/dev/console
+exec 2>/dev/console
+
+insmod /lib/modules/4.8.16/kernel/drivers/vmm/poke.ko
+exec /sbin/init $*
