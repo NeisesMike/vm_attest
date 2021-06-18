@@ -1,0 +1,50 @@
+ExternalProject_Add(
+    checkout_linux
+    GIT_REPOSITORY
+    ${linux_repo}
+    GIT_TAG
+    ${linux_tag}
+    GIT_SHALLOW
+    1
+    GIT_PROGRESS
+    1
+    BUILD_COMMAND
+    ""
+    INSTALL_COMMAND
+    ""
+    CONFIGURE_COMMAND
+    ""
+    SOURCE_DIR
+    ${CMAKE_CURRENT_BINARY_DIR}/linux_out
+)
+
+set(linux_config "${CAMKES_VM_IMAGES_DIR}/${KernelARMPlatform}/linux_configs/config")
+set(linux_symvers "${CAMKES_VM_IMAGES_DIR}/${KernelARMPlatform}/linux_configs/Module.symvers")
+ConfigureLinux(
+    ${CMAKE_CURRENT_BINARY_DIR}/linux_out
+    ${linux_config}
+    ${linux_symvers}
+    configure_vm_linux
+    ARCH
+    ${linux_arch}
+    CROSS_COMPILE
+    ${linux_cross_compile}
+    DEPENDS checkout_linux
+)
+# Add the external poke module project
+ExternalProject_Add(poke-module
+    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/modules
+    BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/poke-module
+    BUILD_ALWAYS ON
+    STAMP_DIR ${CMAKE_CURRENT_BINARY_DIR}/poke-module-stamp
+    EXCLUDE_FROM_ALL
+    INSTALL_COMMAND ""
+    DEPENDS checkout_linux configure_vm_linux
+    CMAKE_ARGS
+        -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+        -DCMAKE_TOOLCHAIN_FILE=${LINUX_64BIT_TOOLCHAIN}
+        -DLINUX_KERNEL_DIR=${CMAKE_CURRENT_BINARY_DIR}/linux_out
+        -DCROSS_COMPILE=${linux_cross_compile}
+        -DMODULE_HELPERS_FILE=${CAMKES_VM_LINUX_DIR}/linux-module-helpers.cmake
+)
+

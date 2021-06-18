@@ -6,4 +6,13 @@ endif()
 
 include("${MODULE_HELPERS_FILE}")
 
-DefineLinuxModule(${CMAKE_CURRENT_LIST_DIR}/poke poke-module poke-target KERNEL_DIR ${LINUX_KERNEL_DIR})
+DefineLinuxModule(
+    ${CMAKE_CURRENT_LIST_DIR}/poke
+    poke-module
+    poke-target
+    KERNEL_DIR
+    ${LINUX_KERNEL_DIR}
+    CROSS_COMPILE
+    ${linux_cross_compile}
+)
+
