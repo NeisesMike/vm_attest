@@ -14,6 +14,8 @@ echo "==================================" &&
 echo "Image generated!" &&
 echo "Copy vm_attest into the project..." &&
 cp -r ../vm_attest projects/vm-examples/apps/Arm/ &&
+echo "Copy vm_measure into the project..." &&
+cp -r ../vm_measure projects/vm-examples/apps/Arm/ &&
 mkdir build &&
 cd build &&   
 echo "vm_attest copied." &&
