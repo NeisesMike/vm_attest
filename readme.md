@@ -1,14 +1,21 @@
-# to build a camkes vm project
-> in particular, the vm_attest project 
->> see the readme.md in the vm_attest directory for more information
+# What is this?
+This is a workbench for building and testing camkes apps.
+There are two apps currently: vm_attest and vm_measure.
 
-### Procedure
+## vm_attest
+This app is meant to become the final product. It should, by the end, allow one machine to attest to another by generating evidence about itself. There are many parts. A camkes component should generate runtime evidence about the linux kernel running in the sel4 hypervisor. That evidence should be signed and given to the linux instance. From there, a userspace app should generate evidence about the userspace. The whole evidence bundle should be signed and transmitted to another machine, where it will be appraised.
+
+## vm_measure
+This app is meant to teach me how to build linux kernel modules using the sel4 build system. In time it will be integrated into vm_attest.
+
+
+# How do I use this workbench?
 0. clone this repo with `git clone --recurse-submodules`.
 1. `genImage.sh` to grab the latest camkes-arm-vm project.
 2. `getDocker.sh` if you don't already have Docker.
 3. `startDocker.sh` to enter a docker instance.
 4. cd into the `camkesvm[date]` directory and the `build` subdirectory.
-5. `mybuild.sh` to init, build, and compile the vm_attest project.
+5. `myattest.sh` to init, build, and compile the vm_attest project.
 
 ### Build Scripts
 > genImage.sh

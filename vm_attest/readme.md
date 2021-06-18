@@ -19,6 +19,7 @@ See images/arch\ image.pdf for a visual.
 
 ## Future Work
 
-* Implement a measurement interface, allowing the general introspection of linux kernel memory.
+* ~~Implement a measurement interface, allowing the introspection of linux userspace memory.~~
+* Find a way to measure kernel-only memory.
 * Write a paper arguing we've achieved the assumptions set out in the Confining paper by Paul.
 
