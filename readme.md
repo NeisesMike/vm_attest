@@ -42,5 +42,5 @@ This app is meant to teach me how to build linux kernel modules using the sel4 b
 
 ### Notes
 > If you don't have the `repo` tool
->> https://source.android.com/setup/build/downloading#installing-repo
+>> https://source.android.com/setup/develop#installing-repo
 
